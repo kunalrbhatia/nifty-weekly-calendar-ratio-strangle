@@ -14,7 +14,7 @@ describe('scripMaster', () => {
       name: 'NIFTY',
       expiry: '28OCT2025',
       strike: '2440000.000000',
-      lotsize: '75',
+      lotsize: '65',
       instrumenttype: 'OPTIDX',
       exch_seg: 'NFO',
     },
@@ -24,7 +24,7 @@ describe('scripMaster', () => {
       name: 'NIFTY',
       expiry: '28OCT2025',
       strike: '2440000.000000',
-      lotsize: '75',
+      lotsize: '65',
       instrumenttype: 'OPTIDX',
       exch_seg: 'NFO',
     },
@@ -34,7 +34,7 @@ describe('scripMaster', () => {
       name: 'NIFTY',
       expiry: '04NOV2025',
       strike: '2440000.000000',
-      lotsize: '75',
+      lotsize: '65',
       instrumenttype: 'OPTIDX',
       exch_seg: 'NFO',
     },
@@ -56,7 +56,7 @@ describe('scripMaster', () => {
 
   it('should verify and return lot size', () => {
     const lotSize = verifyAndGetLotSize('NIFTY', mockScrips);
-    expect(lotSize).toBe(75);
+    expect(lotSize).toBe(65);
   });
 
   it('should throw on lot size mismatch', () => {
@@ -67,7 +67,7 @@ describe('scripMaster', () => {
         name: 'NIFTY',
         expiry: '28OCT2025',
         strike: '2440000.000000',
-        lotsize: '50', // configured is 75 in constants
+        lotsize: '50', // configured is 65 in constants
         instrumenttype: 'OPTIDX',
         exch_seg: 'NFO',
       },

@@ -5,6 +5,7 @@ import {
   loadCachedScrips,
   verifyAndGetLotSize,
   resolveT0AndT1,
+  downloadScripMaster,
   ScripItem,
 } from '../helpers/scripMaster.js';
 import { getISTDateString } from '../helpers/holidayCheck.js';
@@ -20,10 +21,16 @@ export async function generateBasketOrder(): Promise<void> {
     return;
   }
 
-  const scrips = loadCachedScrips();
+  let scrips = loadCachedScrips();
   if (scrips.length === 0) {
-    console.error('[BASKET] Scrip master cache is empty. Run downloadScripMaster first.');
-    return;
+    console.log('[BASKET] Scrip master cache is empty. Downloading now...');
+    try {
+      await downloadScripMaster();
+      scrips = loadCachedScrips();
+    } catch (err: any) {
+      console.error('[BASKET] Failed to download scrip master:', err.message);
+      return;
+    }
   }
 
   let lotSize: number;
@@ -77,7 +84,7 @@ export async function generateBasketOrder(): Promise<void> {
     const day = parts.find((p) => p.type === 'day')?.value || '';
     const monthIndex = parseInt(parts.find((p) => p.type === 'month')?.value || '1', 10) - 1;
     const year = parts.find((p) => p.type === 'year')?.value || '';
-    return `${day}${months[monthIndex]}${year}`;
+    return `${day.padStart(2, '0')}${months[monthIndex]}${year}`;
   };
 
   const T1ScripStr = formatScripExpiry(T1);

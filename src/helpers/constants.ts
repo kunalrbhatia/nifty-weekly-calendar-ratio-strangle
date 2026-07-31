@@ -3,7 +3,7 @@ export const INDEX_CONFIGS = {
     symbol: 'NIFTY',
     exchSeg: 'NFO',
     instrumentType: 'OPTIDX',
-    defaultLotSize: 75, // Note: dynamically verified and checked. We'll use 75 or 25 depending on exchange info, let's keep it as default config
+    defaultLotSize: 65, // Note: dynamically verified and checked. We'll use 65 or 25 depending on exchange info, let's keep it as default config
     strikeStep: 100,
   },
 } as const;
