@@ -109,7 +109,7 @@ export async function runEntrySequence(): Promise<void> {
     const day = parts.find((p) => p.type === 'day')?.value || '';
     const monthIndex = parseInt(parts.find((p) => p.type === 'month')?.value || '1', 10) - 1;
     const year = parts.find((p) => p.type === 'year')?.value || '';
-    return `${day}${months[monthIndex]}${year}`;
+    return `${day.padStart(2, '0')}${months[monthIndex]}${year}`;
   };
 
   const T1ScripStr = formatScripExpiry(T1);
