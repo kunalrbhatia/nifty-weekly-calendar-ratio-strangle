@@ -17,7 +17,7 @@ function verifyDescription(text) {
   const withoutHtml = withoutUrls.replace(/<\/[a-zA-Z0-9]+>/g, '');
 
   // Look for words that contain a slash or backslash, which might be a path or a command.
-  const pathOrCommandRegex = /(?:^|\s)([\w-]*[/\\][\w./-]+)(?:\s|$|[.,!?])/g;
+  const pathOrCommandRegex = /(?:^|\s)([\w.-]*[/\\][\w./-]+)(?:\s|$|[.,!?])/g;
 
   let match;
   let issues = [];
