@@ -180,6 +180,26 @@ export async function generateBasketOrder(): Promise<void> {
     return;
   }
 
+  let longCELtp = 0;
+  let longPELtp = 0;
+  let shortCELtp = 0;
+  let shortPELtp = 0;
+
+  try {
+    const ltpRes = await getBulkLTP('NFO', [
+      longCEContract.token,
+      longPEContract.token,
+      shortCEContract.token,
+      shortPEContract.token,
+    ]);
+    longCELtp = ltpRes[longCEContract.token] || 0;
+    longPELtp = ltpRes[longPEContract.token] || 0;
+    shortCELtp = ltpRes[shortCEContract.token] || 0;
+    shortPELtp = ltpRes[shortPEContract.token] || 0;
+  } catch (err: any) {
+    console.warn('[BASKET] Failed to fetch leg LTPs for summary, using default 0.');
+  }
+
   const basketOrders = [
     {
       variety: 'NORMAL',
@@ -235,6 +255,12 @@ export async function generateBasketOrder(): Promise<void> {
   fs.writeFileSync(basketPath, JSON.stringify(basketOrders, null, 2), 'utf8');
 
   console.log(`✓ Basket generated successfully at ${basketPath}`);
+  console.log('\n--- Leg LTP Summary ---');
+  console.log(`${longCEContract.symbol} (T1 Buy)  | LTP: ₹${longCELtp} | Qty: ${lotSize}`);
+  console.log(`${longPEContract.symbol} (T1 Buy)  | LTP: ₹${longPELtp} | Qty: ${lotSize}`);
+  console.log(`${shortCEContract.symbol} (T0 Sell) | LTP: ₹${shortCELtp} | Qty: ${lotSize * 2}`);
+  console.log(`${shortPEContract.symbol} (T0 Sell) | LTP: ₹${shortPELtp} | Qty: ${lotSize * 2}`);
+  console.log('-----------------------\n');
   console.log(JSON.stringify(basketOrders, null, 2));
 }
 
