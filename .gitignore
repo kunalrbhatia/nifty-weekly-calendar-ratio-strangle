@@ -8,3 +8,9 @@ data/
 .panic
 coverage/
 
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+
