@@ -3,7 +3,11 @@ declare module 'smartapi-javascript' {
     constructor(config: { api_key: string });
     generateSession(clientCode: string, pin: string, totp: string): Promise<any>;
     getProfile(): Promise<any>;
-    getLtpData(params: { exchange: string; tradingsymbol: string; symboltoken: string }): Promise<any>;
+    getLtpData(params: {
+      exchange: string;
+      tradingsymbol: string;
+      symboltoken: string;
+    }): Promise<any>;
     getRMSLimit(): Promise<any>;
     placeOrder(params: any): Promise<any>;
     getOrderBook(): Promise<any>;

@@ -31,7 +31,7 @@ export function initTelegramBot(): void {
     try {
       const store = loadStore();
       const mtmResult = calculateCombinedMTM(store);
-      
+
       const fileStatus = [
         fs.existsSync(path.join(ROOT_DIR, '.paper')) ? '✅ PAPER' : '❌ LIVE',
         fs.existsSync(path.join(ROOT_DIR, '.kill')) ? '⚠️ KILL (Soft Pause)' : '✅ RUNNING',

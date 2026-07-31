@@ -36,7 +36,7 @@ export function formatMtmLogLine(date: Date, index: 'NIFTY', mtm: number): strin
 export function calculateLegMTL(leg: LegState, currentLtp: number): number {
   // If option is worthless, mark LTP as 0 for MTM recomputation
   const markLtp = currentLtp < env.WORTHLESS_LTP_THRESHOLD ? 0 : currentLtp;
-  
+
   if (leg.side === 'BUY') {
     return (markLtp - leg.fillPremium) * leg.qty;
   } else {
@@ -44,7 +44,10 @@ export function calculateLegMTL(leg: LegState, currentLtp: number): number {
   }
 }
 
-export function calculateCombinedMTM(store: PositionState): { mtm: number; details: Record<string, number> } {
+export function calculateCombinedMTM(store: PositionState): {
+  mtm: number;
+  details: Record<string, number>;
+} {
   let combinedMtm = 0;
   const details: Record<string, number> = {};
 
@@ -62,7 +65,7 @@ export function calculateCombinedMTM(store: PositionState): { mtm: number; detai
 
 export async function logMtmLine(date: Date, mtm: number, force = false): Promise<void> {
   const parts = getISTDateParts(date);
-  
+
   // Only write once per clock minute unless forced (e.g. breach)
   if (parts.minute !== lastLoggedMinute || force) {
     if (!force) {
@@ -70,14 +73,17 @@ export async function logMtmLine(date: Date, mtm: number, force = false): Promis
     }
     const logPath = getMtmLogPath(date);
     const logLine = formatMtmLogLine(date, 'NIFTY', mtm);
-    
+
     fs.appendFileSync(logPath, logLine + '\n', 'utf8');
     console.log(`[MTM LOG] ${logLine}`);
   }
 }
 
 // Order placement during exits
-export async function executeExit(reason: 'THRESHOLD_BREACH' | 'EXPIRY_WIND_DOWN' | 'MANUAL', expiryOnly = false): Promise<void> {
+export async function executeExit(
+  reason: 'THRESHOLD_BREACH' | 'EXPIRY_WIND_DOWN' | 'MANUAL',
+  expiryOnly = false
+): Promise<void> {
   if (isPanicSwitchActive()) {
     console.log('[EXIT] Panic switch (.panic) is active. Exit execution halted.');
     return;
@@ -92,12 +98,16 @@ export async function executeExit(reason: 'THRESHOLD_BREACH' | 'EXPIRY_WIND_DOWN
   console.log(`[EXIT] Starting exit flow. Reason: ${reason}`);
 
   // Write pre-close snapshot
-  const snapshotFile = path.join(process.cwd(), 'data', `pre-close-snapshot-nifty-${Date.now()}.json`);
+  const snapshotFile = path.join(
+    process.cwd(),
+    'data',
+    `pre-close-snapshot-nifty-${Date.now()}.json`
+  );
   fs.writeFileSync(snapshotFile, JSON.stringify(store, null, 2), 'utf8');
   console.log(`[EXIT] Pre-close snapshot saved: ${snapshotFile}`);
 
   const exitTime = new Date().toISOString();
-  
+
   // Process legs
   for (const leg of store.legs) {
     if (leg.status !== 'OPEN') continue;
@@ -111,14 +121,29 @@ export async function executeExit(reason: 'THRESHOLD_BREACH' | 'EXPIRY_WIND_DOWN
       const legExpiryParts = getISTDateParts(new Date(leg.expiry)); // this may not parse DDMMMYYYY directly in JS Date, so we compare formats
       // Let's use our helper to format current date to DDMMMYYYY
       const formatScripExpiry = (date: Date): string => {
-        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const months = [
+          'JAN',
+          'FEB',
+          'MAR',
+          'APR',
+          'MAY',
+          'JUN',
+          'JUL',
+          'AUG',
+          'SEP',
+          'OCT',
+          'NOV',
+          'DEC',
+        ];
         const parts = getISTDateParts(date);
         return `${parts.day}${months[parts.month - 1]}${parts.year}`;
       };
-      
+
       const todayScripStr = formatScripExpiry(new Date());
       if (leg.expiry !== todayScripStr) {
-        console.log(`[EXIT] Skipping leg ${leg.symbol} as it does not expire today (${leg.expiry} vs today ${todayScripStr})`);
+        console.log(
+          `[EXIT] Skipping leg ${leg.symbol} as it does not expire today (${leg.expiry} vs today ${todayScripStr})`
+        );
         continue;
       }
     }
@@ -127,7 +152,9 @@ export async function executeExit(reason: 'THRESHOLD_BREACH' | 'EXPIRY_WIND_DOWN
 
     // Check if worthless
     if (currentLtp < env.WORTHLESS_LTP_THRESHOLD) {
-      console.log(`[EXIT] Leg ${leg.symbol} is worthless (LTP: ₹${currentLtp} < threshold ₹${env.WORTHLESS_LTP_THRESHOLD}). Allowing to expire unbooked.`);
+      console.log(
+        `[EXIT] Leg ${leg.symbol} is worthless (LTP: ₹${currentLtp} < threshold ₹${env.WORTHLESS_LTP_THRESHOLD}). Allowing to expire unbooked.`
+      );
       leg.status = 'EXPIRED_UNBOOKED';
       continue;
     }
@@ -149,12 +176,14 @@ export async function executeExit(reason: 'THRESHOLD_BREACH' | 'EXPIRY_WIND_DOWN
       leg.exitPremium = exitPremium;
       console.log(`[EXIT] Leg ${leg.symbol} exit confirmed at ₹${exitPremium}`);
     } catch (err: any) {
-      await sendAlert(`🚨 CRITICAL: Failed to exit leg ${leg.symbol}: ${err.message}. Manual intervention required!`);
+      await sendAlert(
+        `🚨 CRITICAL: Failed to exit leg ${leg.symbol}: ${err.message}. Manual intervention required!`
+      );
     }
   }
 
   // Update overall position status
-  const anyOpen = store.legs.some(l => l.status === 'OPEN');
+  const anyOpen = store.legs.some((l) => l.status === 'OPEN');
   store.status = anyOpen ? 'PARTIAL_ENTRY' : 'CLOSED';
   store.exitReason = reason;
   store.exitTimestamp = exitTime;
@@ -162,7 +191,7 @@ export async function executeExit(reason: 'THRESHOLD_BREACH' | 'EXPIRY_WIND_DOWN
   saveStore(store);
 
   const mtmResult = calculateCombinedMTM(store);
-  
+
   await sendAlert(
     `⏹️ *POSITION EXIT EXECUTED*
 *Reason*: ${reason}
@@ -183,13 +212,15 @@ export async function processTick(tick: { token: string; ltp: number }) {
 
   // Recompute MTM
   const { mtm } = calculateCombinedMTM(store);
-  
+
   // Log MTM
   await logMtmLine(new Date(), mtm);
 
   // Check Threshold Breach (symmetric ±2% exitThreshold)
   if (Math.abs(mtm) >= store.exitThreshold) {
-    console.log(`[MONITOR] MTM breach: Combined MTM ₹${mtm.toFixed(2)} crossed threshold ₹${store.exitThreshold.toFixed(2)}`);
+    console.log(
+      `[MONITOR] MTM breach: Combined MTM ₹${mtm.toFixed(2)} crossed threshold ₹${store.exitThreshold.toFixed(2)}`
+    );
     // Append immediately on breach
     await logMtmLine(new Date(), mtm, true);
     await executeExit('THRESHOLD_BREACH');

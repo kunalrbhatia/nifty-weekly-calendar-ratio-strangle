@@ -27,7 +27,7 @@ export async function downloadScripMaster(): Promise<void> {
 
   console.log('Downloading scrip master...');
   const url = 'https://margincalculator.angelone.in/OpenAPI_File/files/OpenAPIScripMaster.json';
-  
+
   try {
     const response = await axios.get(url, { timeout: 30000 });
     if (Array.isArray(response.data)) {
@@ -110,25 +110,35 @@ export function verifyAndGetLotSize(symbol: IndexName, scrips: ScripItem[]): num
 // Convert DDMMMYYYY (e.g. 28OCT2025) to Date object in IST timezone
 export function parseExpiryDate(expiryStr: string): Date {
   const months: Record<string, number> = {
-    JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
-    JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11
+    JAN: 0,
+    FEB: 1,
+    MAR: 2,
+    APR: 3,
+    MAY: 4,
+    JUN: 5,
+    JUL: 6,
+    AUG: 7,
+    SEP: 8,
+    OCT: 9,
+    NOV: 10,
+    DEC: 11,
   };
-  
+
   // Expiry is format: DDMMMYYYY or DMMMYYYY (e.g. 5AUG2025 or 28OCT2025)
   const match = expiryStr.match(/^(\d{1,2})([A-Z]{3})(\d{4})$/);
   if (!match) {
     throw new Error(`Invalid expiry string format: ${expiryStr}`);
   }
-  
+
   const day = parseInt(match[1], 10);
   const monthStr = match[2];
   const year = parseInt(match[3], 10);
-  
+
   const month = months[monthStr];
   if (month === undefined) {
     throw new Error(`Invalid month in expiry: ${monthStr}`);
   }
-  
+
   // Construct date at 15:30 IST to be safe
   const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T15:30:00.000+05:30`;
   return new Date(isoStr);
@@ -157,14 +167,18 @@ export function getAvailableExpiries(symbol: IndexName, scrips: ScripItem[]): Da
 }
 
 // Find T0 and T1 expiry dates
-export function resolveT0AndT1(symbol: IndexName, scrips: ScripItem[], today: Date): { T0: Date; T1: Date } {
+export function resolveT0AndT1(
+  symbol: IndexName,
+  scrips: ScripItem[],
+  today: Date
+): { T0: Date; T1: Date } {
   const expiries = getAvailableExpiries(symbol, scrips);
-  
+
   // Filter for weekly expiries. In Nifty, weekly expiries fall on Tuesday.
   // Wait, let's filter dates that are >= today and fall on a Tuesday.
   const upcomingTuesdays = expiries.filter((date) => {
     if (date.getTime() < today.getTime()) return false;
-    
+
     // Check if Tuesday
     const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Kolkata',
@@ -175,17 +189,21 @@ export function resolveT0AndT1(symbol: IndexName, scrips: ScripItem[], today: Da
   });
 
   if (upcomingTuesdays.length < 2) {
-    throw new Error(`Insufficient upcoming Tuesday weekly expiries found. Found: ${upcomingTuesdays.length}`);
+    throw new Error(
+      `Insufficient upcoming Tuesday weekly expiries found. Found: ${upcomingTuesdays.length}`
+    );
   }
 
   const T0 = upcomingTuesdays[0];
-  
+
   // T1 is exactly 1 calendar week (7 days) after T0 on the weekly chain
   const expectedT1Time = T0.getTime() + 7 * 24 * 60 * 60 * 1000;
-  
+
   // Find the closest date matching expectedT1Time (allowing some holiday shift if T1 Tuesday is shifted)
-  const T1 = upcomingTuesdays.find((d) => Math.abs(d.getTime() - expectedT1Time) < 2 * 24 * 60 * 60 * 1000);
-  
+  const T1 = upcomingTuesdays.find(
+    (d) => Math.abs(d.getTime() - expectedT1Time) < 2 * 24 * 60 * 60 * 1000
+  );
+
   if (!T1) {
     throw new Error(`Could not resolve T1 (T0 + 7 days) on the weekly expiry chain.`);
   }

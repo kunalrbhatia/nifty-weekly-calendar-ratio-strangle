@@ -12,23 +12,23 @@ describe('Report Generation Smoke Test', () => {
     const records = parseMtmLogLines(fixtureLog);
 
     expect(records.length).toBe(4);
-    
+
     expect(records[0]).toEqual({
       timestamp: '28/7/2026, 9:45:00 am',
       index: 'NIFTY',
-      mtm: -120.50
+      mtm: -120.5,
     });
 
     expect(records[3]).toEqual({
       timestamp: '28/7/2026, 3:16:00 pm',
       index: 'NIFTY',
-      mtm: 3974.75
+      mtm: 3974.75,
     });
 
     // Verify Open, Close, High, Low logic can be computed
     const openMtm = records[0].mtm;
     const closeMtm = records[records.length - 1].mtm;
-    
+
     let highMtm = -Infinity;
     let lowMtm = Infinity;
 
@@ -37,9 +37,9 @@ describe('Report Generation Smoke Test', () => {
       if (r.mtm < lowMtm) lowMtm = r.mtm;
     }
 
-    expect(openMtm).toBe(-120.50);
+    expect(openMtm).toBe(-120.5);
     expect(closeMtm).toBe(3974.75);
     expect(highMtm).toBe(3974.75);
-    expect(lowMtm).toBe(-120.50);
+    expect(lowMtm).toBe(-120.5);
   });
 });

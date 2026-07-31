@@ -14,7 +14,9 @@ export async function placeMarketOrder(params: OrderParams): Promise<string> {
 
   if (isPaperMode()) {
     const mockOrderId = `MOCK-ORDER-${side}-${token}-${Date.now()}`;
-    console.log(`[PAPER] Placed market order: ${side} ${qty} lots of ${symbol} (${token}). ID: ${mockOrderId}`);
+    console.log(
+      `[PAPER] Placed market order: ${side} ${qty} lots of ${symbol} (${token}). ID: ${mockOrderId}`
+    );
     return mockOrderId;
   }
 
@@ -69,18 +71,24 @@ export async function placeMarketOrder(params: OrderParams): Promise<string> {
       );
 
       if (matchingOrder && matchingOrder.orderid) {
-        console.log(`✓ Reconciled order: found existing order in book with ID ${matchingOrder.orderid}`);
+        console.log(
+          `✓ Reconciled order: found existing order in book with ID ${matchingOrder.orderid}`
+        );
         return matchingOrder.orderid;
       }
     } catch (reconcileErr) {
       console.error('Failed to reconcile order book:', reconcileErr);
     }
-    
+
     throw err;
   }
 }
 
-export async function confirmOrderFill(orderId: string, symbol: string, token: string): Promise<number> {
+export async function confirmOrderFill(
+  orderId: string,
+  symbol: string,
+  token: string
+): Promise<number> {
   if (isPaperMode()) {
     // Return mock price based on symbol/token or just default values
     // Long T1 legs premium: let's mock 150.

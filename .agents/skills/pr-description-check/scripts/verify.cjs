@@ -58,17 +58,13 @@ const issues = verifyDescription(content);
 
 if (issues.length > 0) {
   console.error('❌ PR Description Check Failed!');
-  console.error(
-    'The following commands or file paths were found without backticks:',
-  );
-  issues.forEach(issue => console.error(`  - ${issue}`));
-  console.error(
-    '\nPlease wrap commands, file paths, and code snippets in backticks (`).',
-  );
+  console.error('The following commands or file paths were found without backticks:');
+  issues.forEach((issue) => console.error(`  - ${issue}`));
+  console.error('\nPlease wrap commands, file paths, and code snippets in backticks (`).');
   process.exit(1);
 } else {
   console.log(
-    '✅ PR Description Check Passed! All paths and commands appear to be properly formatted with backticks.',
+    '✅ PR Description Check Passed! All paths and commands appear to be properly formatted with backticks.'
   );
   process.exit(0);
 }

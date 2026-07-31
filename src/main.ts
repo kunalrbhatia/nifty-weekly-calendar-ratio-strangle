@@ -34,8 +34,10 @@ async function initializeApp() {
 
   // Resume active trade monitoring if open
   if (store.status === 'FULL_ENTRY' || store.status === 'PARTIAL_ENTRY') {
-    console.log(`[RESUME] Active trade found in state: ${store.status}. Resuming WebSocket monitor...`);
-    const activeTokens = store.legs.map(l => l.token);
+    console.log(
+      `[RESUME] Active trade found in state: ${store.status}. Resuming WebSocket monitor...`
+    );
+    const activeTokens = store.legs.map((l) => l.token);
     activeTokens.push('99926000'); // include spot
     try {
       await connectWebSocket(activeTokens);
@@ -52,68 +54,90 @@ async function initializeApp() {
   // --- Cron Schedules (Asia/Kolkata) ---
 
   // 1. Scrip Master Refresh Daily at 08:30 AM IST (Monday to Friday)
-  cron.schedule('30 8 * * 1-5', async () => {
-    console.log('[CRON] Refreshing scrip master...');
-    try {
-      await downloadScripMaster();
-    } catch (err: any) {
-      await sendAlert(`🚨 Failed to refresh scrip master: ${err.message}`);
-    }
-  }, { timezone: 'Asia/Kolkata' });
+  cron.schedule(
+    '30 8 * * 1-5',
+    async () => {
+      console.log('[CRON] Refreshing scrip master...');
+      try {
+        await downloadScripMaster();
+      } catch (err: any) {
+        await sendAlert(`🚨 Failed to refresh scrip master: ${err.message}`);
+      }
+    },
+    { timezone: 'Asia/Kolkata' }
+  );
 
   // 2. Entry sequence run at 09:45 AM IST (Monday to Friday)
-  cron.schedule('45 9 * * 1-5', async () => {
-    console.log('[CRON] Running entry schedule check...');
-    const today = new Date();
-    
-    // Resolve current week's Wednesday
-    const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
-    const currentWednesday = new Date(today.getTime());
-    
-    // Adjust currentWednesday to Wednesday of current week
-    const diff = 3 - dayOfWeek;
-    currentWednesday.setDate(currentWednesday.getDate() + diff);
+  cron.schedule(
+    '45 9 * * 1-5',
+    async () => {
+      console.log('[CRON] Running entry schedule check...');
+      const today = new Date();
 
-    let entryDay = currentWednesday;
-    if (isHoliday(currentWednesday)) {
-      entryDay = getNextTradingDay(currentWednesday);
-    }
+      // Resolve current week's Wednesday
+      const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
+      const currentWednesday = new Date(today.getTime());
 
-    // Compare year/month/day of today and resolved entryDay
-    const tParts = getISTDateParts(today);
-    const eParts = getISTDateParts(entryDay);
+      // Adjust currentWednesday to Wednesday of current week
+      const diff = 3 - dayOfWeek;
+      currentWednesday.setDate(currentWednesday.getDate() + diff);
 
-    if (tParts.year === eParts.year && tParts.month === eParts.month && tParts.day === eParts.day) {
-      console.log('[CRON] Today is the resolved entry day. Running entry sequence.');
-      try {
-        await runEntrySequence();
-      } catch (err: any) {
-        await sendAlert(`🚨 Entry sequence failed: ${err.message}`);
+      let entryDay = currentWednesday;
+      if (isHoliday(currentWednesday)) {
+        entryDay = getNextTradingDay(currentWednesday);
       }
-    } else {
-      console.log(`[CRON] Entry skipped today. Resolved entry day for this week is ${eParts.year}-${eParts.month}-${eParts.day}`);
-    }
-  }, { timezone: 'Asia/Kolkata' });
+
+      // Compare year/month/day of today and resolved entryDay
+      const tParts = getISTDateParts(today);
+      const eParts = getISTDateParts(entryDay);
+
+      if (
+        tParts.year === eParts.year &&
+        tParts.month === eParts.month &&
+        tParts.day === eParts.day
+      ) {
+        console.log('[CRON] Today is the resolved entry day. Running entry sequence.');
+        try {
+          await runEntrySequence();
+        } catch (err: any) {
+          await sendAlert(`🚨 Entry sequence failed: ${err.message}`);
+        }
+      } else {
+        console.log(
+          `[CRON] Entry skipped today. Resolved entry day for this week is ${eParts.year}-${eParts.month}-${eParts.day}`
+        );
+      }
+    },
+    { timezone: 'Asia/Kolkata' }
+  );
 
   // 3. Expiry day wind-down on Tuesdays at 15:20 IST (or closing session on holiday)
-  cron.schedule('20 15 * * 2', async () => {
-    console.log('[CRON] Running expiry-day exit wind-down...');
-    try {
-      await executeExit('EXPIRY_WIND_DOWN', true);
-    } catch (err: any) {
-      await sendAlert(`🚨 Expiry-day wind-down failed: ${err.message}`);
-    }
-  }, { timezone: 'Asia/Kolkata' });
+  cron.schedule(
+    '20 15 * * 2',
+    async () => {
+      console.log('[CRON] Running expiry-day exit wind-down...');
+      try {
+        await executeExit('EXPIRY_WIND_DOWN', true);
+      } catch (err: any) {
+        await sendAlert(`🚨 Expiry-day wind-down failed: ${err.message}`);
+      }
+    },
+    { timezone: 'Asia/Kolkata' }
+  );
 
   // 4. Daily Report at 15:40 IST (Monday to Friday)
-  cron.schedule('40 15 * * 1-5', async () => {
-    console.log('[CRON] Running daily trade report generation...');
-    try {
-      await runReportGeneration();
-    } catch (err: any) {
-      await sendAlert(`🚨 Daily report generation failed: ${err.message}`);
-    }
-  }, { timezone: 'Asia/Kolkata' });
+  cron.schedule(
+    '40 15 * * 1-5',
+    async () => {
+      console.log('[CRON] Running daily trade report generation...');
+      try {
+        await runReportGeneration();
+      } catch (err: any) {
+        await sendAlert(`🚨 Daily report generation failed: ${err.message}`);
+      }
+    },
+    { timezone: 'Asia/Kolkata' }
+  );
 }
 
 initializeApp().catch((err) => {

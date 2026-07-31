@@ -35,7 +35,9 @@ export async function connectWebSocket(tokens: string[]): Promise<void> {
 
   const session = getSession();
   if (!session?.jwtToken) {
-    throw new Error('WebSocket connection failed: No JWT token in session. Make sure to login first.');
+    throw new Error(
+      'WebSocket connection failed: No JWT token in session. Make sure to login first.'
+    );
   }
 
   wsClient = new WebSocketV2({
@@ -51,8 +53,8 @@ export async function connectWebSocket(tokens: string[]): Promise<void> {
   // Mode 1: LTP, Exchange Type 1: NSE (for Nifty spot index is 1, NFO option contracts also exchange type 1 or 2? Let's check: usually NFO is exchangeType 2 or NSE/NFO)
   // Let's subscribe to both exchangeType 1 (NSE) and 2 (NFO) depending on token.
   // Spot token 99926000 is on exchange 1 (NSE). Option contracts are on NFO (typically exchangeType 2).
-  const nseTokens = tokens.filter(t => t === '99926000');
-  const nfoTokens = tokens.filter(t => t !== '99926000');
+  const nseTokens = tokens.filter((t) => t === '99926000');
+  const nfoTokens = tokens.filter((t) => t !== '99926000');
 
   if (nseTokens.length > 0) {
     wsClient.fetchData({
@@ -114,11 +116,11 @@ export function disconnectWebSocket() {
 // Paper/mock trading tick generator
 function startPaperTicker(tokens: string[]) {
   stopPaperTicker();
-  
+
   let currentSpot = 24500;
   // Let's store current prices for other tokens
   const prices: Record<string, number> = {};
-  
+
   // Set default initial prices
   for (const t of tokens) {
     if (t === '99926000') {
@@ -133,7 +135,7 @@ function startPaperTicker(tokens: string[]) {
     // Generate minor walk on spot price
     const change = (Math.random() - 0.5) * 10;
     currentSpot += change;
-    
+
     // Dispatch spot tick
     dispatchTick({ token: '99926000', ltp: currentSpot });
 
@@ -142,12 +144,12 @@ function startPaperTicker(tokens: string[]) {
     const store = loadStore();
     for (const t of tokens) {
       if (t === '99926000') continue;
-      
-      const leg = store.legs.find(l => l.token === t);
+
+      const leg = store.legs.find((l) => l.token === t);
       if (leg) {
         let direction = 1;
         if (leg.optionType === 'PE') direction = -1;
-        
+
         // Option delta approximation: 0.3 for OTM/ratio legs
         const premiumChange = change * 0.3 * direction;
         let currentPremium = prices[t] || leg.fillPremium;

@@ -6,23 +6,23 @@ dotenv.config();
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.string().default('development'),
-  
+
   // Broker Credentials
   API_KEY: z.string(),
   CLIENT_CODE: z.string(),
   CLIENT_PIN: z.string(),
   CLIENT_TOTP_PIN: z.string(),
-  
+
   // Telegram
   USE_TELEGRAM: z.coerce.boolean().default(false),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID: z.string().optional(),
-  
+
   // Slack
   USE_SLACK: z.coerce.boolean().default(false),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
-  
+
   // Strategy Specific
   EXIT_THRESHOLD_PCT: z.coerce.number().default(2),
   WORTHLESS_LTP_THRESHOLD: z.coerce.number().default(5),
@@ -34,13 +34,13 @@ const envSchema = z.object({
 
 const isTest = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 
-const sourceEnv = isTest 
+const sourceEnv = isTest
   ? {
       API_KEY: 'mock-api-key',
       CLIENT_CODE: 'mock-client',
       CLIENT_PIN: '1234',
       CLIENT_TOTP_PIN: 'mock-totp',
-      ...process.env
+      ...process.env,
     }
   : process.env;
 
@@ -52,4 +52,3 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
-

@@ -8,5 +8,5 @@ export default {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  testMatch: ["**/src/**/*.spec.ts"]
+  testMatch: ['**/src/**/*.spec.ts'],
 };

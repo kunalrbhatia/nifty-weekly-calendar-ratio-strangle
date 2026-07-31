@@ -55,7 +55,7 @@ export function getISTDateString(date: Date = new Date()): string {
 export function isHoliday(date: Date): boolean {
   // Check day of week in IST
   const parts = getISTDateParts(date);
-  
+
   // To get the day of the week in IST:
   // We can construct a date object using the IST date parts or format the weekday
   const weekdayFormatter = new Intl.DateTimeFormat('en-US', {

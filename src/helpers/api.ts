@@ -47,7 +47,9 @@ export async function retryCall<T>(
         await sendAlert(errorMsg);
         throw err;
       }
-      console.warn(`[RETRY] ${label} failed. Retrying in ${delayMs}ms... (attempt ${attempt}/${retries})`);
+      console.warn(
+        `[RETRY] ${label} failed. Retrying in ${delayMs}ms... (attempt ${attempt}/${retries})`
+      );
       await new Promise((res) => setTimeout(res, delayMs));
     }
   }
@@ -90,7 +92,7 @@ async function getRealNiftySpotLTP(): Promise<number> {
 export async function getUtilisedMargin(): Promise<number> {
   if (isPaperMode()) {
     // Standard mock value for paper trading margin
-    return 150000; 
+    return 150000;
   }
 
   const task = async () => {
@@ -98,14 +100,14 @@ export async function getUtilisedMargin(): Promise<number> {
     if (!sessionData?.jwtToken) {
       throw new Error('Not logged in: session JWT token missing');
     }
-    
+
     // Direct REST API getRMS call as per API docs
     const url = 'https://apiconnect.angelone.in/rest/secure/angelbroking/user/v1/getRMS';
     const response = await axios.get(url, {
       headers: {
-        'Authorization': `Bearer ${sessionData.jwtToken}`,
+        Authorization: `Bearer ${sessionData.jwtToken}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'X-UserType': 'USER',
         'X-SourceID': 'WEB',
         'X-ClientLocalIP': localIp,
@@ -132,12 +134,17 @@ export async function getUtilisedMargin(): Promise<number> {
     // Rule 2.2: Fallback values are a production incident waiting to happen — never let them be silent.
     // Trigger alert every time used, visually distinguishable.
     const fallbackValue = 200000;
-    await sendAlert(`🚨 CRITICAL: Margin API failed after retries. Using fallback margin value ₹${fallbackValue} (fallback).`);
+    await sendAlert(
+      `🚨 CRITICAL: Margin API failed after retries. Using fallback margin value ₹${fallbackValue} (fallback).`
+    );
     return fallbackValue;
   }
 }
 
-export async function getBulkLTP(exchange: 'NSE' | 'NFO', tokens: string[]): Promise<Record<string, number>> {
+export async function getBulkLTP(
+  exchange: 'NSE' | 'NFO',
+  tokens: string[]
+): Promise<Record<string, number>> {
   if (tokens.length === 0) return {};
 
   if (isPaperMode()) {
@@ -162,7 +169,7 @@ export async function getBulkLTP(exchange: 'NSE' | 'NFO', tokens: string[]): Pro
       },
     };
     const res = await api.getMarketData(payload);
-    
+
     const results: Record<string, number> = {};
     if (res.status && res.data && Array.isArray(res.data.fetched)) {
       for (const item of res.data.fetched) {
@@ -177,4 +184,3 @@ export async function getBulkLTP(exchange: 'NSE' | 'NFO', tokens: string[]): Pro
 
   return retryCall(task, `Bulk LTP Fetch for ${tokens.length} tokens`);
 }
-

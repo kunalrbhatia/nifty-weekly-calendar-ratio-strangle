@@ -13,7 +13,7 @@ export interface MtmRecord {
 export function parseMtmLogLines(content: string): MtmRecord[] {
   const records: MtmRecord[] = [];
   const lines = content.split('\n');
-  
+
   // Format: [DD/MM/YYYY, H:mm:SS am/pm] [INFO] INDEX: MTM = VALUE
   const regex = /^\[([^\]]+)\]\s+\[INFO\]\s+(\w+):\s+MTM\s+=\s+(-?[\d.]+)/i;
 
@@ -59,11 +59,11 @@ export async function runReportGeneration(date: Date = new Date()): Promise<void
 
   // Load static position metadata for supplementary details
   const store = loadStore();
-  
+
   // Compute High, Low, Open, Close
   const openMtm = records[0].mtm;
   const closeMtm = records[records.length - 1].mtm;
-  
+
   let highMtm = -Infinity;
   let highTime = '';
   let lowMtm = Infinity;
@@ -80,8 +80,8 @@ export async function runReportGeneration(date: Date = new Date()): Promise<void
     }
   }
 
-  const thresholdBreached = store.exitThreshold > 0 && 
-    (highMtm >= store.exitThreshold || lowMtm <= -store.exitThreshold);
+  const thresholdBreached =
+    store.exitThreshold > 0 && (highMtm >= store.exitThreshold || lowMtm <= -store.exitThreshold);
 
   // Generate Report Markdown
   let reportMd = `# Nifty Weekly Calendar Ratio Strangle Daily Report - ${dateStr}
