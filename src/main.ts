@@ -1,3 +1,4 @@
+import './helpers/logger.js'; // must be first — patches console.log/warn/error
 import cron from 'node-cron';
 import { env } from './config/env.js';
 import { startHealthServer } from './server.js';

@@ -1,3 +1,4 @@
+import '../helpers/logger.js'; // must be first — patches console.log/warn/error
 import { loginToBroker } from '../helpers/login.js';
 import { runEntrySequence } from './entry.js';
 import { downloadScripMaster, loadCachedScrips } from '../helpers/scripMaster.js';

@@ -1,6 +1,7 @@
 declare module 'smartapi-javascript' {
   export class SmartAPI {
     constructor(config: { api_key: string });
+    setAccessToken(token: string): void;
     generateSession(clientCode: string, pin: string, totp: string): Promise<any>;
     getProfile(): Promise<any>;
     getLtpData(params: {
