@@ -12,7 +12,7 @@ declare module 'smartapi-javascript' {
     getRMSLimit(): Promise<any>;
     placeOrder(params: any): Promise<any>;
     getOrderBook(): Promise<any>;
-    getMarketData(params: any): Promise<any>;
+    marketData(params: any): Promise<any>;
   }
 
   export class WebSocketV2 {

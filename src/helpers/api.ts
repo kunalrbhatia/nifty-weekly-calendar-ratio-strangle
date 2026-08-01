@@ -79,7 +79,7 @@ async function getRealNiftySpotLTP(): Promise<number> {
   const api = await getSmartApi();
   // Use the SDK's marketData method with NIFTY 50 index token on NSE
   const task = async () => {
-    const res = await api.getMarketData({
+    const res = await api.marketData({
       mode: 'LTP',
       exchangeTokens: {
         NSE: ['99926000'],
@@ -172,7 +172,7 @@ export async function getBulkLTP(
         [exchange]: tokens,
       },
     };
-    const res = await api.getMarketData(payload);
+    const res = await api.marketData(payload);
 
     const results: Record<string, number> = {};
     if (res.status && res.data && Array.isArray(res.data.fetched)) {
