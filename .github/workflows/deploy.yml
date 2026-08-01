@@ -21,6 +21,7 @@ jobs:
           key: ${{ secrets.ORACLE_SSH_KEY }}
           passphrase: ${{ secrets.ORACLE_SSH_PASSPHRASE }}
           script: |
+            export PATH=$PATH:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$HOME/.local/share/pnpm:$HOME/.pnpm-global/bin
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             cd ~/nifty-weekly-calendar-ratio-strangle
