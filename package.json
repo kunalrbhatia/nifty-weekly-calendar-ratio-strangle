@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "lint": "eslint src",
     "generate-basket": "tsx src/jobs/generateBasket.ts",
+    "show-pnl": "tsx src/jobs/showPnl.ts",
     "verify": "pnpm run format:check && pnpm run lint && tsc --noEmit && pnpm run test:coverage && pnpm run build",
     "test:entry": "tsx src/jobs/runEntry.ts"
   },
