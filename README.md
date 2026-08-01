@@ -223,6 +223,21 @@ For continuous 24/7 hosting (e.g., on an AWS EC2 instance, DigitalOcean Droplet,
    pm2 save
    ```
 
+### 🤖 Automated CI/CD Deployment with GitHub Actions
+
+If you fork this repository, you can enable auto-deployment to your production server via the included GitHub Actions workflow (`.github/workflows/deploy.yml`).
+
+Whenever the `CI` workflow completes successfully on the `master` branch, the `Deploy` workflow triggers an SSH connection to your server, pulls the latest changes, builds the project, and restarts the PM2 process.
+
+To configure this, add the following **GitHub Repository Secrets** in your fork (`Settings > Secrets and variables > Actions`):
+
+| Secret Key              | Description                                                                            | Example                                  |
+| :---------------------- | :------------------------------------------------------------------------------------- | :--------------------------------------- |
+| `ORACLE_HOST`           | Host IP address or domain name of your production server                               | `123.45.67.89`                           |
+| `ORACLE_USER`           | SSH username on your production server                                                 | `ubuntu`                                 |
+| `ORACLE_SSH_KEY`        | Private SSH key used to authenticate with your server                                  | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `ORACLE_SSH_PASSPHRASE` | Passphrase of your private SSH key (leave blank or omit if your key has no passphrase) | `my_ssh_key_passphrase`                  |
+
 ---
 
 ## 🤝 Contributing
