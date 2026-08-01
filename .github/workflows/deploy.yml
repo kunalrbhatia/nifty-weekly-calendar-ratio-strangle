@@ -21,14 +21,17 @@ jobs:
           key: ${{ secrets.ORACLE_SSH_KEY }}
           passphrase: ${{ secrets.ORACLE_SSH_PASSPHRASE }}
           script: |
-            export PATH=$PATH:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$HOME/.local/share/pnpm:$HOME/.pnpm-global/bin
+            source ~/.bashrc 2>/dev/null || true
+            source ~/.profile 2>/dev/null || true
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            export PNPM_HOME="$HOME/.local/share/pnpm"
+            export PATH="$PNPM_HOME:$NVM_DIR/versions/node/$(ls $NVM_DIR/versions/node 2>/dev/null | tail -n 1)/bin:$PATH"
             cd ~/nifty-weekly-calendar-ratio-strangle
             git reset --hard
             git clean -fd
             git fetch origin master
             git reset --hard origin/master
-            pnpm install --frozen-lockfile
-            pnpm build
-            pm2 restart ecosystem.config.cjs --env production
+            if command -v pnpm &> /dev/null; then pnpm install --frozen-lockfile; else npx pnpm install --frozen-lockfile; fi
+            if command -v pnpm &> /dev/null; then pnpm build; else npx pnpm build; fi
+            if command -v pm2 &> /dev/null; then pm2 restart ecosystem.config.cjs --env production; else npx pm2 restart ecosystem.config.cjs --env production; fi
