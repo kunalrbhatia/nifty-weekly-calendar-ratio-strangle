@@ -256,8 +256,9 @@ export async function runEntrySequence(): Promise<void> {
   ): Promise<ScripItem> => {
     // To avoid fetching too many, keep contracts within +/- 1500 points of spot
     const candidateContracts = contracts.filter((item) => {
-      const strike = Math.round(parseFloat(item.strike) / 100);
-      return Math.abs(strike - spotLTP) <= 1500;
+      const strikeVal = Math.round(parseFloat(item.strike) / 100);
+      if (strikeVal % 100 !== 0) return false;
+      return Math.abs(strikeVal - spotLTP) <= 1500;
     });
 
     const tokens = candidateContracts.map((c) => c.token);
@@ -269,6 +270,7 @@ export async function runEntrySequence(): Promise<void> {
     for (const contract of candidateContracts) {
       const ltp = ltpMap[contract.token] || 0;
       if (ltp <= 0) continue;
+      if (ltp < target) continue;
 
       const diff = Math.abs(ltp - target);
       if (diff < bestDiff) {
