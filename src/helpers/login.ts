@@ -20,12 +20,15 @@ export async function loginToBroker(): Promise<boolean> {
   const task = async () => {
     // Generate session using Client Code, password/pin, and totp
     const res = await api.generateSession(env.CLIENT_CODE, env.CLIENT_PIN, totp);
-    if (res.status && res.data) {
+    if (res && res.status && res.data) {
       await setSession(res.data);
       console.log('✓ Login successful');
       return true;
     }
-    throw new Error(res.message || 'Login failed with empty response');
+    const detail = res
+      ? `${res.message || 'No message'} (errorcode: ${res.errorcode || 'N/A'}, status: ${res.status})`
+      : 'Empty response object';
+    throw new Error(`Login failed: ${detail}`);
   };
 
   try {
