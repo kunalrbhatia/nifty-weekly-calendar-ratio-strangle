@@ -10,10 +10,10 @@ The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options struct
 
 ### Option Structure
 
-| Expiry Leg                     | Option Type    | Ratio / Lots       | Strike Selection Method                                        |
-| :----------------------------- | :------------- | :----------------- | :------------------------------------------------------------- |
-| **T1** (Next Weekly Expiry)    | Buy 1 Lot CE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike |
-| **T1** (Next Weekly Expiry)    | Buy 1 Lot PE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike |
+| Expiry Leg                     | Option Type    | Ratio / Lots       | Strike Selection Method                                                            |
+| :----------------------------- | :------------- | :----------------- | :--------------------------------------------------------------------------------- |
+| **T1** (Next Weekly Expiry)    | Buy 1 Lot CE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike                     |
+| **T1** (Next Weekly Expiry)    | Buy 1 Lot PE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike                     |
 | **T0** (Current Weekly Expiry) | Sell 2 Lots CE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 CE premium (closest match to target) |
 | **T0** (Current Weekly Expiry) | Sell 2 Lots PE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 PE premium (closest match to target) |
 
