@@ -114,9 +114,23 @@ export async function generateBasketOrder(): Promise<void> {
     return;
   }
 
-  // Estimate LTPs for short strike selection
-  const targetCEPremium = 80; // approximate default target CE premium if not fetched
-  const targetPEPremium = 80;
+  // Fetch long leg LTPs first to determine target premiums for short legs
+  let longCELtp = 0;
+  let longPELtp = 0;
+
+  try {
+    const ltpRes = await getBulkLTP('NFO', [
+      longCEContract.token,
+      longPEContract.token,
+    ]);
+    longCELtp = ltpRes[longCEContract.token] || 0;
+    longPELtp = ltpRes[longPEContract.token] || 0;
+  } catch (err: any) {
+    console.warn('[BASKET] Failed to fetch long leg LTPs, using default 80.');
+  }
+
+  const targetCEPremium = longCELtp > 0 ? longCELtp / 2 : 80;
+  const targetPEPremium = longPELtp > 0 ? longPELtp / 2 : 80;
 
   const t0CEContracts = scrips.filter(
     (item) =>
@@ -142,8 +156,9 @@ export async function generateBasketOrder(): Promise<void> {
     optionType: 'CE' | 'PE'
   ): Promise<ScripItem> => {
     const candidateContracts = contracts.filter((item) => {
-      const strike = Math.round(parseFloat(item.strike) / 100);
-      return Math.abs(strike - spotLTP) <= 1500;
+      const strikeVal = Math.round(parseFloat(item.strike) / 100);
+      if (strikeVal % 100 !== 0) return false;
+      return Math.abs(strikeVal - spotLTP) <= 1500;
     });
 
     const tokens = candidateContracts.map((c) => c.token);
@@ -155,11 +170,21 @@ export async function generateBasketOrder(): Promise<void> {
     for (const contract of candidateContracts) {
       const ltp = ltpMap[contract.token] || 0;
       if (ltp <= 0) continue;
+      if (ltp < target) continue;
 
       const diff = Math.abs(ltp - target);
       if (diff < bestDiff) {
         bestDiff = diff;
         bestContract = contract;
+      } else if (diff === bestDiff && bestContract) {
+        // Tie breaker: prefer farther OTM (higher strike for CE, lower strike for PE)
+        const currentStrike = Math.round(parseFloat(contract.strike) / 100);
+        const bestStrike = Math.round(parseFloat(bestContract.strike) / 100);
+        if (optionType === 'CE' && currentStrike > bestStrike) {
+          bestContract = contract;
+        } else if (optionType === 'PE' && currentStrike < bestStrike) {
+          bestContract = contract;
+        }
       }
     }
 
@@ -180,24 +205,18 @@ export async function generateBasketOrder(): Promise<void> {
     return;
   }
 
-  let longCELtp = 0;
-  let longPELtp = 0;
   let shortCELtp = 0;
   let shortPELtp = 0;
 
   try {
     const ltpRes = await getBulkLTP('NFO', [
-      longCEContract.token,
-      longPEContract.token,
       shortCEContract.token,
       shortPEContract.token,
     ]);
-    longCELtp = ltpRes[longCEContract.token] || 0;
-    longPELtp = ltpRes[longPEContract.token] || 0;
     shortCELtp = ltpRes[shortCEContract.token] || 0;
     shortPELtp = ltpRes[shortPEContract.token] || 0;
   } catch (err: any) {
-    console.warn('[BASKET] Failed to fetch leg LTPs for summary, using default 0.');
+    console.warn('[BASKET] Failed to fetch short leg LTPs for summary, using default 0.');
   }
 
   const basketOrders = [
