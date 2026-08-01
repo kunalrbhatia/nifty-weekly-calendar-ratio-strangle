@@ -1,4 +1,4 @@
-﻿# Session Notes — Nifty Weekly Calendar Ratio Strangle Bot
+# Session Notes — Nifty Weekly Calendar Ratio Strangle Bot
 
 > **Purpose**: This file is a living reference for any AI session.
 > When starting a new session, ask the agent to read this file first so it has full context of what has been built, what decisions were made, and what the next steps are.
@@ -143,7 +143,8 @@ echo "paper" > .paper
 ## 7. Workflow and Git Rules
 
 - **Never push directly to `master`** — always raise a PR via the `gh-pr-workflow` skill
-- **Always squash and merge**: `gh pr merge <N> --squash`
+- **Always squash and merge**: `gh pr merge <N> --squash` (ensures a clean, linear commit history on `master`)
+- **Linear History**: Maintain a 1-to-1 linear commit log on `master` without merge commits
 - **PR descriptions**: All file paths, commands, and code snippets must use backticks
 - **After merging**: Run the `git-cleanup-sync` skill to switch back to master and delete the local branch
 
