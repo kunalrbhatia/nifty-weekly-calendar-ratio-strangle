@@ -1,7 +1,8 @@
 node_modules/
 dist/
-logs/
 data/
+logs/
+!logs/.gitkeep
 .env
 .paper
 .kill

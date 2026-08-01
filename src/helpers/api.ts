@@ -21,8 +21,13 @@ export async function getSmartApi(): Promise<SmartAPI> {
   return smartApiInstance;
 }
 
-export function setSession(data: any) {
+export async function setSession(data: any) {
   sessionData = data;
+  // Authenticate the SDK instance with the JWT token so data calls work
+  if (data?.jwtToken) {
+    const api = await getSmartApi();
+    api.setAccessToken(data.jwtToken);
+  }
 }
 
 export function getSession() {
@@ -72,18 +77,18 @@ export async function getNiftySpotLTP(): Promise<number> {
 
 async function getRealNiftySpotLTP(): Promise<number> {
   const api = await getSmartApi();
-  // Angel One spot token for NIFTY 50 index is usually "99926000" or similar on NSE.
-  // Let's retrieve LTP.
+  // Use the SDK's marketData method with NIFTY 50 index token on NSE
   const task = async () => {
-    const res = await api.getLtpData({
-      exchange: 'NSE',
-      tradingsymbol: 'Nifty 50',
-      symboltoken: '99926000',
+    const res = await api.getMarketData({
+      mode: 'LTP',
+      exchangeTokens: {
+        NSE: ['99926000'],
+      },
     });
-    if (res.status && res.data && res.data.ltp) {
-      return parseFloat(res.data.ltp);
+    if (res.status && res.data?.fetched?.length > 0) {
+      return parseFloat(res.data.fetched[0].ltp);
     }
-    throw new Error(res.message || 'LTP returned empty');
+    throw new Error(res.message || 'marketData returned empty for Nifty spot');
   };
   return retryCall(task, 'Nifty Spot LTP Fetch');
 }
@@ -96,7 +101,6 @@ export async function getUtilisedMargin(): Promise<number> {
   }
 
   const task = async () => {
-    const api = await getSmartApi();
     if (!sessionData?.jwtToken) {
       throw new Error('Not logged in: session JWT token missing');
     }

@@ -6,7 +6,7 @@ import { isPaperMode } from './modeManager.js';
 export async function loginToBroker(): Promise<boolean> {
   if (isPaperMode()) {
     console.log('✓ Paper mode active: Mock login successful');
-    setSession({
+    await setSession({
       jwtToken: 'mock-jwt-token',
       refreshToken: 'mock-refresh-token',
       feedToken: 'mock-feed-token',
@@ -21,7 +21,7 @@ export async function loginToBroker(): Promise<boolean> {
     // Generate session using Client Code, password/pin, and totp
     const res = await api.generateSession(env.CLIENT_CODE, env.CLIENT_PIN, totp);
     if (res.status && res.data) {
-      setSession(res.data);
+      await setSession(res.data);
       console.log('✓ Login successful');
       return true;
     }
