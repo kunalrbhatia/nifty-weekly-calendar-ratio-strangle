@@ -3,6 +3,17 @@ import { z } from 'zod';
 
 dotenv.config();
 
+// Helper for boolean env vars: "false", "0", "" become false
+const envBoolean = z
+  .union([z.boolean(), z.string()])
+  .optional()
+  .transform((val) => {
+    if (typeof val === 'boolean') return val;
+    if (val === undefined || val === null || val === '') return false;
+    return val.toLowerCase() === 'true' || val === '1';
+  })
+  .pipe(z.boolean());
+
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.string().default('development'),
@@ -14,12 +25,12 @@ const envSchema = z.object({
   CLIENT_TOTP_PIN: z.string(),
 
   // Telegram
-  USE_TELEGRAM: z.coerce.boolean().default(false),
+  USE_TELEGRAM: envBoolean,
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID: z.string().optional(),
 
   // Slack
-  USE_SLACK: z.coerce.boolean().default(false),
+  USE_SLACK: envBoolean,
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
 
