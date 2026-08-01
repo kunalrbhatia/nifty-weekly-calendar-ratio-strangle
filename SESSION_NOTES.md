@@ -161,11 +161,12 @@ echo "paper" > .paper
 ## 8. Production Deployment
 
 - **Process manager**: `pm2` with `ecosystem.config.cjs`
-- **Entry point**: `dist/main.js` (compiled output)
+- **Entry point**: `dist/src/main.js` (compiled output)
 - **Cron schedules** (IST / Asia/Kolkata):
-  - `9:45 AM` — Download scrip master + run entry sequence
-  - Every minute during market hours — Monitor open positions
-  - `3:20 PM` — Force close all open legs
+  - `8:30 AM` — Download/refresh Scrip Master
+  - `9:45 AM` — Entry sequence run **strictly on Wednesday** (or next trading day if Wednesday is a holiday)
+  - Every minute during market hours — Monitor open positions via WebSocket
+  - `3:15 PM` — Expiry day wind-down on **Tuesday** (squares off open legs with premium > ₹5)
   - `3:40 PM` — Generate and send daily P&L report
 - **Scrip master cache**: Stored in `data/scrip-master.json`, downloaded fresh each morning
 
@@ -187,33 +188,29 @@ echo "paper" > .paper
 | Angel One IP whitelist required        | Working         | Must whitelist server IP in SmartAPI dashboard                      |
 | Bot only runs during market hours      | By design       | Cron schedule enforces this                                         |
 | Order confirmation fails outside hours | By design       | Correctly rejects `open/pending` status                             |
-| ESLint unused-var warnings (24 total)  | Non-blocking    | All are minor (unused imports, `err` in catch blocks). Zero errors. |
+| ESLint unused-var warnings (22 total)  | Non-blocking    | All are minor (unused imports, `err` in catch blocks). Zero errors. |
 | Margin API fallback                    | Alert-triggered | If `getRMS` fails, uses Rs 200,000 fallback with alert              |
 
 ---
 
-## 10. What Was Done in This Session (July 31, 2026)
+## 10. What Was Done in This Session (August 1, 2026)
 
-1. Fixed `pr-description-check` regex to support dot-prefixed paths
-2. Added workspace rules enforcing PR workflow (`.agent/rules/pr-rules.md`)
-3. Updated `.gitignore` to exclude all image files
-4. Fixed `defaultLotSize` to `65` in constants and updated test mocks
-5. Built `src/jobs/generateBasket.ts` — basket preview script
-6. Built `src/jobs/runEntry.ts` — manual live entry trigger
-7. Fixed `formatScripExpiry()` to pad single-digit days in both `entry.ts` and `generateBasket.ts`
-8. Fixed SmartAPI SDK usage in `api.ts`:
-   - Made `setSession` async and added `api.setAccessToken(jwtToken)` call after login
-   - Replaced non-existent `getLtpData` with correct `api.marketData()` call
-9. Created `.env.example` template
-10. Successfully tested live entry — real orders were placed on Angel One exchange
-11. Merged all changes via squash PRs (#3 through #6)
+1. Fixed boolean `.env` variable parsing logic in `src/config/env.ts` so `USE_TELEGRAM=false` and `USE_SLACK=false` evaluate correctly.
+2. Updated PM2 `ecosystem.config.cjs` configuration with memory restart, auto-restart, and log settings.
+3. Updated GitHub Actions SSH deployment workflow (`.github/workflows/deploy.yml`) to support passphrases and export PATH/npx fallbacks.
+4. Enhanced broker login error logging in `src/helpers/login.ts` for detailed API error diagnostics.
+5. Enforced linear commit history rule for `master` branch across repository rules (`.agents/rules/pr-rules.md`).
+6. Updated Entry schedule to run **strictly on Wednesday at 09:45 AM IST** (with holiday fallback).
+7. Updated Expiry Exit schedule to run on **Tuesday at 03:15 PM IST** (`15:15 IST`).
+8. Configured Exit filtering in `src/jobs/monitor.ts` so **only options with premium > ₹5 are squared off**. Options $\le 5$ are marked `EXPIRED_UNBOOKED`.
+9. Built `src/jobs/showPnl.ts` — high-visibility ASCII P&L banner script fetching data from MTM logs without calling Angel One APIs.
+10. Added `README.md` and updated GitHub repository description/topics via GitHub CLI.
 
 ---
 
 ## 11. Next Steps
 
-- [ ] Deploy to a VPS/server
-- [ ] Whitelist server static IP in Angel One SmartAPI dashboard
-- [ ] Run `pnpm run start` (or `pm2 start`) during market hours
-- [ ] Monitor logs and share with agent for debugging/analysis
-- [ ] Potentially hook up Telegram notifications for real-time trade alerts
+- [ ] Deploy to VPS / Oracle Cloud server
+- [ ] Add `ORACLE_SSH_PASSPHRASE` (if needed) and whitelist server static IP in Angel One SmartAPI dashboard
+- [ ] Configure local server cron (every 30 mins) to run `pnpm run show-pnl`
+- [ ] Monitor PM2 logs (`pm2 logs nifty-weekly-calendar-ratio-strangle`)

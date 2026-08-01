@@ -37,7 +37,7 @@ The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options struct
 
 ### 🚀 Entry Plan
 
-- **Execution Time**: `09:45 AM IST` on trading days.
+- **Execution Schedule**: `09:45 AM IST` **strictly on Wednesday** (or next trading day if Wednesday is a holiday).
 - **Phase A — Long Protection (T1)**:
   1. Fetch live Nifty 50 Index spot LTP (Token: `99926000`).
   2. Compute candidate strikes: `Spot + 500` (CE) & `Spot - 500` (PE), rounded to nearest 100.
@@ -56,10 +56,10 @@ The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options struct
    - Monitored continuously via live WebSocket ticks.
    - If Nifty spot moves $\ge 2\%$ up or down from entry spot, an emergency exit is triggered.
    - Order sequence: BUY to close short legs (T0), then SELL to close long legs (T1).
-2. **Expiry Day Mandatory Time Exit (03:20 PM IST)**:
-   - On the current weekly expiry date (T0), the bot automatically closes all open positions at `03:20 PM IST` to avoid physical settlement or delivery risks.
-3. **Worthless Option Optimization**:
-   - If an option's LTP drops below ₹5 (`WORTHLESS_LTP_THRESHOLD`), its MTM value is treated as zero to prevent unnecessary slippage on exit.
+2. **Expiry Day Time Exit (Tuesday at 03:15 PM IST)**:
+   - On Tuesday (`15:15 IST`), the bot automatically wind-downs and exits open position legs.
+3. **Worthless Option Filter (Premium > ₹5)**:
+   - Only options with premium $> ₹5$ (`WORTHLESS_LTP_THRESHOLD`) are squared off on exit. Options with premium $\le ₹5$ are marked `EXPIRED_UNBOOKED` and allowed to expire unbooked to avoid unnecessary slippage.
 4. **Safety Switches**:
    - `.kill` file presence: Soft pauses entry without closing existing positions.
    - `.panic` file presence: Triggers immediate market exit for all open legs and stops execution.
@@ -167,6 +167,7 @@ rm .paper
 | `pnpm run dev`             | Run bot in dev mode with hot reloading (`tsx`)                    |
 | `pnpm run build`           | Compile TypeScript into `dist/`                                   |
 | `pnpm run start`           | Run compiled production build (`dist/src/main.js`)                |
+| `pnpm run show-pnl`        | Display high-visibility ASCII P&L banner from MTM log files       |
 | `pnpm run generate-basket` | Dry-run preview of strangle legs without placing orders           |
 | `pnpm run test:entry`      | Manually execute entry sequence once                              |
 | `pnpm run verify`          | Full quality check (`prettier`, `eslint`, `tsc`, `jest`, `build`) |
