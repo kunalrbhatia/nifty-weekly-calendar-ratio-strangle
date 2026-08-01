@@ -14,8 +14,8 @@ The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options struct
 | :----------------------------- | :------------- | :----------------- | :------------------------------------------------------------- |
 | **T1** (Next Weekly Expiry)    | Buy 1 Lot CE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike |
 | **T1** (Next Weekly Expiry)    | Buy 1 Lot PE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike |
-| **T0** (Current Weekly Expiry) | Sell 2 Lots CE | **2 Lots** (Short) | Strike matching ~50% of T1 CE premium (target ratio hedge)     |
-| **T0** (Current Weekly Expiry) | Sell 2 Lots PE | **2 Lots** (Short) | Strike matching ~50% of T0 PE premium (target ratio hedge)     |
+| **T0** (Current Weekly Expiry) | Sell 2 Lots CE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 CE premium (closest match to target) |
+| **T0** (Current Weekly Expiry) | Sell 2 Lots PE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 PE premium (closest match to target) |
 
 > **Lot Size**: `65` (Verified dynamically against live Angel One Scrip Master).
 
@@ -52,7 +52,7 @@ To clarify the strategy's operation, consider this concrete example:
   3. Execute market BUY order for 1 Lot T1 CE & 1 Lot T1 PE. Confirm fills via order book retry mechanism.
 - **Phase B — Short Ratio Hedge (T0)**:
   1. Target premium = `T1 Fill Premium / 2`.
-  2. Query option chain for T0 weekly options to select strikes closest to target premium.
+  2. Query option chain for T0 weekly options to select strikes closest to target premium. Candidates are restricted to **100-multiple strikes** within ±1500 points of spot, and only strikes with **premium ≥ target** are eligible (guarantees the short hedge collects at least half the long premium). On ties, the farther OTM strike is preferred.
   3. Execute market SELL order for 2 Lots T0 CE & 2 Lots T0 PE. Confirm fills via order book retry mechanism.
 - **Phase C — State & Stream Initialization**:
   1. Record filled leg details (tokens, prices, quantities, symbols) into local position store (`data/position-nifty.json`).
