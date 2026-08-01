@@ -8,7 +8,6 @@ import {
   downloadScripMaster,
   ScripItem,
 } from '../helpers/scripMaster.js';
-import { getISTDateString } from '../helpers/holidayCheck.js';
 import { roundStrikeToNearest100 } from './entry.js';
 import { loginToBroker } from '../helpers/login.js';
 
@@ -119,10 +118,7 @@ export async function generateBasketOrder(): Promise<void> {
   let longPELtp = 0;
 
   try {
-    const ltpRes = await getBulkLTP('NFO', [
-      longCEContract.token,
-      longPEContract.token,
-    ]);
+    const ltpRes = await getBulkLTP('NFO', [longCEContract.token, longPEContract.token]);
     longCELtp = ltpRes[longCEContract.token] || 0;
     longPELtp = ltpRes[longPEContract.token] || 0;
   } catch (err: any) {
@@ -209,10 +205,7 @@ export async function generateBasketOrder(): Promise<void> {
   let shortPELtp = 0;
 
   try {
-    const ltpRes = await getBulkLTP('NFO', [
-      shortCEContract.token,
-      shortPEContract.token,
-    ]);
+    const ltpRes = await getBulkLTP('NFO', [shortCEContract.token, shortPEContract.token]);
     shortCELtp = ltpRes[shortCEContract.token] || 0;
     shortPELtp = ltpRes[shortPEContract.token] || 0;
   } catch (err: any) {
