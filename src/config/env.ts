@@ -38,7 +38,7 @@ const envSchema = z.object({
   EXIT_THRESHOLD_PCT: z.coerce.number().default(2),
   WORTHLESS_LTP_THRESHOLD: z.coerce.number().default(5),
   TRADE_CLOSE_HOUR: z.coerce.number().default(15),
-  TRADE_CLOSE_MINUTE: z.coerce.number().default(20),
+  TRADE_CLOSE_MINUTE: z.coerce.number().default(15),
   REPORT_HOUR: z.coerce.number().default(15),
   REPORT_MINUTE: z.coerce.number().default(40),
 });

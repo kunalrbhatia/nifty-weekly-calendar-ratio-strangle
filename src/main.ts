@@ -68,36 +68,42 @@ async function initializeApp() {
     { timezone: 'Asia/Kolkata' }
   );
 
-  // 2. Entry sequence run at 09:45 AM IST (Monday to Friday)
+  // 2. Entry sequence run at 09:45 AM IST strictly on Wednesday (or next trading day if Wednesday is a holiday)
   cron.schedule(
     '45 9 * * 1-5',
     async () => {
       console.log('[CRON] Running entry schedule check...');
       const today = new Date();
+      const parts = getISTDateParts(today);
+      const dayOfWeek = today.getDay(); // 0 = Sun, 3 = Wed
 
-      // Resolve current week's Wednesday
-      const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
-      const currentWednesday = new Date(today.getTime());
+      // Verify today is Wednesday (3) OR if Wednesday was a holiday, check if today is the resolved next trading day
+      let isScheduledEntryDay = dayOfWeek === 3; // Wednesday
 
-      // Adjust currentWednesday to Wednesday of current week
-      const diff = 3 - dayOfWeek;
-      currentWednesday.setDate(currentWednesday.getDate() + diff);
+      // Handle Wednesday holiday fallback
+      if (!isScheduledEntryDay) {
+        // Resolve current week's Wednesday
+        const currentWednesday = new Date(today.getTime());
+        const diff = 3 - dayOfWeek;
+        currentWednesday.setDate(currentWednesday.getDate() + diff);
 
-      let entryDay = currentWednesday;
-      if (isHoliday(currentWednesday)) {
-        entryDay = getNextTradingDay(currentWednesday);
+        if (isHoliday(currentWednesday)) {
+          const resolvedEntryDay = getNextTradingDay(currentWednesday);
+          const rParts = getISTDateParts(resolvedEntryDay);
+          if (
+            parts.year === rParts.year &&
+            parts.month === rParts.month &&
+            parts.day === rParts.day
+          ) {
+            isScheduledEntryDay = true;
+          }
+        }
       }
 
-      // Compare year/month/day of today and resolved entryDay
-      const tParts = getISTDateParts(today);
-      const eParts = getISTDateParts(entryDay);
-
-      if (
-        tParts.year === eParts.year &&
-        tParts.month === eParts.month &&
-        tParts.day === eParts.day
-      ) {
-        console.log('[CRON] Today is the resolved entry day. Running entry sequence.');
+      if (isScheduledEntryDay) {
+        console.log(
+          '[CRON] Today is the resolved entry day (Wednesday / holiday fallback). Running entry sequence.'
+        );
         try {
           await runEntrySequence();
         } catch (err: any) {
@@ -105,18 +111,20 @@ async function initializeApp() {
         }
       } else {
         console.log(
-          `[CRON] Entry skipped today. Resolved entry day for this week is ${eParts.year}-${eParts.month}-${eParts.day}`
+          `[CRON] Entry skipped today. Entry runs strictly on Wednesday (or next trading day if Wednesday is a holiday).`
         );
       }
     },
     { timezone: 'Asia/Kolkata' }
   );
 
-  // 3. Expiry day wind-down on Tuesdays at 15:20 IST (or closing session on holiday)
+  // 3. Expiry day wind-down on Tuesdays at 15:15 IST (03:15 PM IST)
   cron.schedule(
-    '20 15 * * 2',
+    `${env.TRADE_CLOSE_MINUTE} ${env.TRADE_CLOSE_HOUR} * * 2`,
     async () => {
-      console.log('[CRON] Running expiry-day exit wind-down...');
+      console.log(
+        `[CRON] Running expiry-day exit wind-down at ${env.TRADE_CLOSE_HOUR}:${env.TRADE_CLOSE_MINUTE} IST...`
+      );
       try {
         await executeExit('EXPIRY_WIND_DOWN', true);
       } catch (err: any) {

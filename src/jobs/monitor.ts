@@ -150,10 +150,10 @@ export async function executeExit(
 
     const currentLtp = latestPrices[leg.token] || leg.fillPremium;
 
-    // Check if worthless
-    if (currentLtp < env.WORTHLESS_LTP_THRESHOLD) {
+    // Only square off options whose premium is greater than WORTHLESS_LTP_THRESHOLD (₹5)
+    if (currentLtp <= env.WORTHLESS_LTP_THRESHOLD) {
       console.log(
-        `[EXIT] Leg ${leg.symbol} is worthless (LTP: ₹${currentLtp} < threshold ₹${env.WORTHLESS_LTP_THRESHOLD}). Allowing to expire unbooked.`
+        `[EXIT] Leg ${leg.symbol} premium (LTP: ₹${currentLtp}) is <= threshold ₹${env.WORTHLESS_LTP_THRESHOLD}. Skipping square-off (allowing to expire unbooked).`
       );
       leg.status = 'EXPIRED_UNBOOKED';
       continue;
