@@ -8,18 +8,6 @@ Automated options trading bot designed for the Indian equity derivatives market 
 
 The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options structure engineered to capture time-decay ($\theta$) while providing built-in tail-risk protection through next-weekly long options.
 
-```
-                   ▲ P&L
-                   │
-            ───────┼───────  Max Profit Range
-           /       │       \
-          /        │        \
-  ───────┼─────────┼─────────┼───────  Break-even points
-        /          │          \
-       /           │           \
-                                 ▼
-```
-
 ### Option Structure
 
 | Expiry Leg                     | Option Type    | Ratio / Lots       | Strike Selection Method                                        |
@@ -30,6 +18,26 @@ The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options struct
 | **T0** (Current Weekly Expiry) | Sell 2 Lots PE | **2 Lots** (Short) | Strike matching ~50% of T0 PE premium (target ratio hedge)     |
 
 > **Lot Size**: `65` (Verified dynamically against live Angel One Scrip Master).
+
+### 📝 Algorithmic Execution Example
+
+To clarify the strategy's operation, consider this concrete example:
+
+1. **Spot Price Identification**:
+   At Wednesday `09:45 AM IST`, the Nifty 50 Index spot price is at **24,500**.
+2. **Phase A — Long Legs (T1)**:
+   - The bot calculates OTM strikes at $\pm 500$ points from spot:
+     - **T1 Call strike**: $24,500 + 500 = 25,000$
+     - **T1 Put strike**: $24,500 - 500 = 24,000$
+   - Market orders execute to **BUY** 1 lot of `25000 CE` (at say ₹80) and 1 lot of `24000 PE` (at say ₹60).
+3. **Phase B — Short Legs (T0)**:
+   - The bot targets short premiums equal to $50\%$ of the corresponding T1 fill premium:
+     - **Target Call Premium**: $₹80 \times 0.50 = ₹40$
+     - **Target Put Premium**: $₹60 \times 0.50 = ₹30$
+   - It queries the T0 option chain and selects strikes closest to these targets (e.g., `24800 CE` at ₹42 and `24200 PE` at ₹28).
+   - Market orders execute to **SELL** 2 lots of `24800 CE` and 2 lots of `24200 PE`.
+4. **State Persistence**:
+   All order execution details are recorded to `data/position-nifty.json`, and the bot transitions to WebSocket streaming mode to monitor exit rules.
 
 ---
 
@@ -63,6 +71,14 @@ The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options struct
 4. **Safety Switches**:
    - `.kill` file presence: Soft pauses entry without closing existing positions.
    - `.panic` file presence: Triggers immediate market exit for all open legs and stops execution.
+
+### 📊 Daily Analysis & Reporting
+
+- **Daily Schedule**: Every trading day at **03:40 PM IST**, the bot runs `src/jobs/report.ts` to execute its daily analysis.
+- **Reporting Metrics**: The script computes:
+  - Realized P&L for closed legs and active Mark-to-Market (MTM) calculations.
+  - Execution summary logs and telemetry data.
+- **Channels**: The final report output is formatted and sent instantly to Slack or Telegram (based on configured channel webhooks).
 
 ---
 
@@ -100,28 +116,41 @@ nifty-weekly-calendar-ratio-strangle/
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started & Deployment Guide
+
+This repository is fully open-source. You can fork this repository to customize the strike selection logic, exit rules, or sizing for your own trading preferences.
+
+### 🍴 Fork and Clone
+
+1. **Fork this repository** to your personal GitHub account by clicking the **Fork** button at the top right of this page.
+2. **Clone your fork** to your local environment or virtual private server (VPS):
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/nifty-weekly-calendar-ratio-strangle.git
+   cd nifty-weekly-calendar-ratio-strangle
+   ```
 
 ### 1. Prerequisites
 
-- Node.js 18+ and `pnpm`.
-- Angel One SmartAPI Developer Account (`API Key`, `Client Code`, `PIN`, `TOTP Secret`).
+- Node.js 18+ and `pnpm` installed on your machine.
+- Angel One SmartAPI Developer Account with credentials (`API Key`, `Client Code`, `PIN`, and `TOTP Secret`).
 
 ### 2. Installation
 
+Install project dependencies:
+
 ```bash
-git clone https://github.com/kunalrbhatia/nifty-weekly-calendar-ratio-strangle.git
-cd nifty-weekly-calendar-ratio-strangle
 pnpm install
 ```
 
 ### 3. Environment Setup
 
-Copy `.env.example` to `.env` and fill in credentials:
+Copy the example environment configuration and supply your broker credentials:
 
 ```bash
 cp .env.example .env
 ```
+
+Open `.env` and fill in the required variables:
 
 ```env
 API_KEY=your_api_key
@@ -137,26 +166,19 @@ TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
 ```
 
-### 4. Modes of Operation
+### 4. Testing with Paper Trading Mode
 
-#### 📝 Paper Trading Mode (Mock Execution)
+Before putting real capital at risk, it is highly recommended to run the bot in Paper Trading (Mock Execution) mode.
 
-Activate mock trading by creating a `.paper` file in the root directory:
-
-```bash
-echo "paper" > .paper
-```
-
-In Paper Mode:
-
-- No real orders hit the exchange.
-- Market data falls back cleanly if APIs are unaccessible outside market hours.
-
-Remove `.paper` to return to live mode:
-
-```bash
-rm .paper
-```
+1. Activate paper trading by creating a `.paper` file in the root directory:
+   ```bash
+   echo "paper" > .paper
+   ```
+2. In paper trading mode, no live orders are sent to the exchange. You can run dry runs safely.
+3. Remove the `.paper` file to switch back to live execution mode:
+   ```bash
+   rm .paper
+   ```
 
 ---
 
@@ -175,21 +197,60 @@ rm .paper
 
 ---
 
-## 🏭 Production Deployment with PM2
+## 🏭 Production Deployment
 
-Start the bot using PM2:
+For continuous 24/7 hosting (e.g., on an AWS EC2 instance, DigitalOcean Droplet, or local server), we recommend running the bot with **PM2** process manager to handle restarts and logging automatically.
 
-```bash
-pnpm run build
-pm2 start ecosystem.config.cjs
-```
+### Detailed Deployment Steps:
 
-View live logs and process status:
+1. **Prepare Node environment**: Make sure Node 18+ and `pnpm` are installed globally.
+2. **Build the project**: Compile the TypeScript source code:
+   ```bash
+   pnpm run build
+   ```
+3. **Start the Process**: Deploy and manage the bot lifecycle using PM2:
+   ```bash
+   pm2 start ecosystem.config.cjs
+   ```
+4. **Monitor Logs**: Monitor the live trading logs and check status:
+   ```bash
+   pm2 logs nifty-weekly-calendar-ratio-strangle
+   pm2 status
+   ```
+5. **Ensure Persistence**: Configure PM2 to start automatically on system reboot:
+   ```bash
+   pm2 startup
+   pm2 save
+   ```
 
-```bash
-pm2 logs nifty-weekly-calendar-ratio-strangle
-pm2 status
-```
+### 🤖 Automated CI/CD Deployment with GitHub Actions
+
+If you fork this repository, you can enable auto-deployment to your production server via the included GitHub Actions workflow (`.github/workflows/deploy.yml`).
+
+Whenever the `CI` workflow completes successfully on the `master` branch, the `Deploy` workflow triggers an SSH connection to your server, pulls the latest changes, builds the project, and restarts the PM2 process.
+
+To configure this, add the following **GitHub Repository Secrets** in your fork (`Settings > Secrets and variables > Actions`):
+
+| Secret Key              | Description                                                                            | Example                                  |
+| :---------------------- | :------------------------------------------------------------------------------------- | :--------------------------------------- |
+| `ORACLE_HOST`           | Host IP address or domain name of your production server                               | `123.45.67.89`                           |
+| `ORACLE_USER`           | SSH username on your production server                                                 | `ubuntu`                                 |
+| `ORACLE_SSH_KEY`        | Private SSH key used to authenticate with your server                                  | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `ORACLE_SSH_PASSPHRASE` | Passphrase of your private SSH key (leave blank or omit if your key has no passphrase) | `my_ssh_key_passphrase`                  |
+
+---
+
+## 🤝 Contributing
+
+This is an **open-source** repository. We welcome contributions of all forms, including bug fixes, performance optimizations, strategy enhancements, or better logging features.
+
+To contribute:
+
+1. Fork the project.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request for review.
 
 ---
 

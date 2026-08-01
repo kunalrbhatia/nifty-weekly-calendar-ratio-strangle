@@ -26,12 +26,23 @@ export function parseLatestMtmFromLog(
   return null;
 }
 
-export function formatPnlBanner(mtm: number, timestamp: string, storeStatus: string): string {
+export function formatPnlBanner(
+  mtm: number,
+  timestamp: string,
+  storeStatus: string,
+  marginUtilized: number,
+  exitThreshold: number
+): string {
   const isProfit = mtm >= 0;
+  const color = isProfit ? '\x1b[32m' : '\x1b[31m';
+  const bold = '\x1b[1m';
+  const reset = '\x1b[0m';
   const sign = isProfit ? '+' : '-';
   const absMtm = Math.abs(mtm).toFixed(2);
-  const formattedVal = `${sign}₹${absMtm}`;
   const statusStr = `Status: ${storeStatus}`;
+  const marginStr = `₹${marginUtilized.toFixed(2)}`;
+  const stopLossStr = `-₹${exitThreshold.toFixed(2)}`;
+  const profitTargetStr = `+₹${exitThreshold.toFixed(2)}`;
 
   const border =
     '═════════════════════════════════════════════════════════════════════════════════';
@@ -39,17 +50,23 @@ export function formatPnlBanner(mtm: number, timestamp: string, storeStatus: str
     '─────────────────────────────────────────────────────────────────────────────────';
 
   return `
-╔${border}╗
-║                          📊 REAL-TIME NIFTY STRANGLE P&L                       ║
-╠${border}╣
-║                                                                                 ║
-║    CURRENT MTM P&L :   ${formattedVal.padEnd(20)}                             ║
-║    STATUS          :   ${statusStr.padEnd(20)}                             ║
-║    LAST UPDATED    :   ${timestamp.padEnd(20)}                             ║
-║                                                                                 ║
-╠${thinBorder}╣
-║  [Source]: MTM Logger (logs/mtm/mtm-nifty-*.log) | Direct log parsing active    ║
-╚${border}╝
+${border}
+                          📊 REAL-TIME NIFTY STRANGLE P&L
+${border}
+
+    ${bold}CURRENT MTM P&L:${reset}
+    ✨✨✨  ${bold}${color}${sign}₹ ${absMtm}${reset}  ✨✨✨
+
+${thinBorder}
+    STATUS          :   ${statusStr.padEnd(20)}
+    MARGIN UTILIZED :   ${marginStr.padEnd(20)}
+    STOP LOSS LIMIT :   ${stopLossStr.padEnd(20)}
+    PROFIT TARGET   :   ${profitTargetStr.padEnd(20)}
+    LAST UPDATED    :   ${timestamp.padEnd(20)}
+
+${thinBorder}
+  [Source]: MTM Logger (logs/mtm/mtm-nifty-*.log) | Direct log parsing active
+${border}
 `;
 }
 
@@ -61,12 +78,17 @@ export function runShowPnl(): void {
   const store = loadStore();
   const parsed = parseLatestMtmFromLog(mtmLogPath);
 
+  const marginUtilized = store.entryMargin || 0;
+  const exitThreshold = store.exitThreshold || 0;
+
   if (parsed) {
-    console.log(formatPnlBanner(parsed.mtm, parsed.timestamp, store.status));
+    console.log(
+      formatPnlBanner(parsed.mtm, parsed.timestamp, store.status, marginUtilized, exitThreshold)
+    );
   } else {
     const parts = getISTDateParts(today);
     const tsStr = `${parts.day}/${parts.month}/${parts.year}, ${parts.hour}:${String(parts.minute).padStart(2, '0')}:${String(parts.second).padStart(2, '0')} ${parts.dayPeriod}`;
-    console.log(formatPnlBanner(0, tsStr, store.status));
+    console.log(formatPnlBanner(0, tsStr, store.status, marginUtilized, exitThreshold));
   }
 }
 
