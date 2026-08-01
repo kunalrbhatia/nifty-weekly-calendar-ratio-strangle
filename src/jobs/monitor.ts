@@ -205,10 +205,17 @@ export async function executeExit(
 }
 
 export async function processTick(tick: { token: string; ltp: number }) {
-  updateLTPCache(tick.token, tick.ltp);
-
   const store = loadStore();
   if (store.status !== 'FULL_ENTRY') return;
+
+  // Filter tick tokens to only spot index and open legs in store
+  const isOpenLegToken = store.legs.some((l) => l.token === tick.token && l.status === 'OPEN');
+  const isSpotToken = tick.token === '99926000';
+  if (!isOpenLegToken && !isSpotToken) {
+    return;
+  }
+
+  updateLTPCache(tick.token, tick.ltp);
 
   // Recompute MTM
   const { mtm } = calculateCombinedMTM(store);
