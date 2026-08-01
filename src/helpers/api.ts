@@ -163,27 +163,38 @@ export async function getBulkLTP(
 
   const api = await getSmartApi();
 
-  const task = async () => {
-    // Use the getMarketData method from SDK
-    // The request format expected by SDK: { mode: 'LTP', exchangeTokens: { NFO: [...] } }
-    const payload = {
-      mode: 'LTP',
-      exchangeTokens: {
-        [exchange]: tokens,
-      },
-    };
-    const res = await api.marketData(payload);
+  // Angel One bulk market data caps at 50 tokens per request — chunk larger sets
+  const MAX_TOKENS_PER_REQUEST = 50;
+  const chunks: string[][] = [];
+  for (let i = 0; i < tokens.length; i += MAX_TOKENS_PER_REQUEST) {
+    chunks.push(tokens.slice(i, i + MAX_TOKENS_PER_REQUEST));
+  }
 
+  const task = async () => {
     const results: Record<string, number> = {};
-    if (res.status && res.data && Array.isArray(res.data.fetched)) {
-      for (const item of res.data.fetched) {
-        if (item.symbolToken && item.ltp) {
-          results[item.symbolToken] = parseFloat(item.ltp);
+
+    for (const chunk of chunks) {
+      // The request format expected by SDK: { mode: 'LTP', exchangeTokens: { NFO: [...] } }
+      const payload = {
+        mode: 'LTP',
+        exchangeTokens: {
+          [exchange]: chunk,
+        },
+      };
+      const res = await api.marketData(payload);
+
+      if (res.status && res.data && Array.isArray(res.data.fetched)) {
+        for (const item of res.data.fetched) {
+          if (item.symbolToken && item.ltp) {
+            results[item.symbolToken] = parseFloat(item.ltp);
+          }
         }
+      } else {
+        throw new Error(res.message || 'getMarketData returned empty or failed status');
       }
-      return results;
     }
-    throw new Error(res.message || 'getMarketData returned empty or failed status');
+
+    return results;
   };
 
   return retryCall(task, `Bulk LTP Fetch for ${tokens.length} tokens`);
