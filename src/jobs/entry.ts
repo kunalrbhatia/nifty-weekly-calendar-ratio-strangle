@@ -226,92 +226,104 @@ export async function runEntrySequence(): Promise<void> {
   console.log('[ENTRY] Phase B complete. Long snapshot stored.');
 
   // Phase C - Sell ratio hedges on T0
-  console.log('[ENTRY] Selecting T0 short ratio strikes...');
-  const targetCEPremium = longCEPremium / 2;
-  const targetPEPremium = longPEPremium / 2;
+  console.log(`[ENTRY] Selecting T0 short ratio strikes for MODE ${env.MODE}...`);
+  let shortCEContract: ScripItem | undefined;
+  let shortPEContract: ScripItem | undefined;
 
-  // Filter all contracts for T0 CE / PE
-  const t0CEContracts = scrips.filter(
-    (item) =>
-      item.name === 'NIFTY' &&
-      item.exch_seg === 'NFO' &&
-      item.instrumenttype === 'OPTIDX' &&
-      item.expiry === T0ScripStr &&
-      item.symbol.endsWith('CE')
-  );
+  if (env.MODE === 2) {
+    // Mode 2: Sell exact same strikes as long legs in T0 expiry
+    shortCEContract = findOptionContract(longCEStrike, 'CE', T0ScripStr);
+    shortPEContract = findOptionContract(longPEStrike, 'PE', T0ScripStr);
 
-  const t0PEContracts = scrips.filter(
-    (item) =>
-      item.name === 'NIFTY' &&
-      item.exch_seg === 'NFO' &&
-      item.instrumenttype === 'OPTIDX' &&
-      item.expiry === T0ScripStr &&
-      item.symbol.endsWith('PE')
-  );
+    if (!shortCEContract || !shortPEContract) {
+      await sendAlert(
+        `🚨 Phase C failed (MODE 2): T0 contracts for exact strikes CE ${longCEStrike}, PE ${longPEStrike} not found in scrip master for expiry ${T0ScripStr}. Position state set to PARTIAL_ENTRY.`
+      );
+      return;
+    }
+  } else {
+    // Mode 1: Sell T0 strikes with half of long fill premium
+    const targetCEPremium = longCEPremium / 2;
+    const targetPEPremium = longPEPremium / 2;
 
-  const selectBestShortStrike = async (
-    contracts: ScripItem[],
-    target: number,
-    optionType: 'CE' | 'PE'
-  ): Promise<ScripItem> => {
-    // To avoid fetching too many, keep contracts within +/- 1500 points of spot
-    const candidateContracts = contracts.filter((item) => {
-      const strikeVal = Math.round(parseFloat(item.strike) / 100);
-      if (strikeVal % 100 !== 0) return false;
-      return Math.abs(strikeVal - spotLTP) <= 1500;
-    });
+    const t0CEContracts = scrips.filter(
+      (item) =>
+        item.name === 'NIFTY' &&
+        item.exch_seg === 'NFO' &&
+        item.instrumenttype === 'OPTIDX' &&
+        item.expiry === T0ScripStr &&
+        item.symbol.endsWith('CE')
+    );
 
-    const tokens = candidateContracts.map((c) => c.token);
-    const ltpMap = await getBulkLTP('NFO', tokens);
+    const t0PEContracts = scrips.filter(
+      (item) =>
+        item.name === 'NIFTY' &&
+        item.exch_seg === 'NFO' &&
+        item.instrumenttype === 'OPTIDX' &&
+        item.expiry === T0ScripStr &&
+        item.symbol.endsWith('PE')
+    );
 
-    let bestContract: ScripItem | null = null;
-    let bestDiff = Infinity;
+    const selectBestShortStrike = async (
+      contracts: ScripItem[],
+      target: number,
+      optionType: 'CE' | 'PE'
+    ): Promise<ScripItem> => {
+      const candidateContracts = contracts.filter((item) => {
+        const strikeVal = Math.round(parseFloat(item.strike) / 100);
+        if (strikeVal % 100 !== 0) return false;
+        return Math.abs(strikeVal - spotLTP) <= 1500;
+      });
 
-    for (const contract of candidateContracts) {
-      const ltp = ltpMap[contract.token] || 0;
-      if (ltp <= 0) continue;
-      if (ltp < target) continue;
+      const tokens = candidateContracts.map((c) => c.token);
+      const ltpMap = await getBulkLTP('NFO', tokens);
 
-      const diff = Math.abs(ltp - target);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        bestContract = contract;
-      } else if (diff === bestDiff && bestContract) {
-        // Tie breaker: prefer farther OTM (higher strike for CE, lower strike for PE)
-        const currentStrike = Math.round(parseFloat(contract.strike) / 100);
-        const bestStrike = Math.round(parseFloat(bestContract.strike) / 100);
-        if (optionType === 'CE' && currentStrike > bestStrike) {
+      let bestContract: ScripItem | null = null;
+      let bestDiff = Infinity;
+
+      for (const contract of candidateContracts) {
+        const ltp = ltpMap[contract.token] || 0;
+        if (ltp <= 0) continue;
+        if (ltp < target) continue;
+
+        const diff = Math.abs(ltp - target);
+        if (diff < bestDiff) {
+          bestDiff = diff;
           bestContract = contract;
-        } else if (optionType === 'PE' && currentStrike < bestStrike) {
-          bestContract = contract;
+        } else if (diff === bestDiff && bestContract) {
+          const currentStrike = Math.round(parseFloat(contract.strike) / 100);
+          const bestStrike = Math.round(parseFloat(bestContract.strike) / 100);
+          if (optionType === 'CE' && currentStrike > bestStrike) {
+            bestContract = contract;
+          } else if (optionType === 'PE' && currentStrike < bestStrike) {
+            bestContract = contract;
+          }
         }
       }
+
+      if (!bestContract) {
+        throw new Error(`No workable short strike found for ${optionType}`);
+      }
+      return bestContract;
+    };
+
+    try {
+      shortCEContract = await selectBestShortStrike(t0CEContracts, targetCEPremium, 'CE');
+      shortPEContract = await selectBestShortStrike(t0PEContracts, targetPEPremium, 'PE');
+    } catch (err: any) {
+      await sendAlert(
+        `🚨 Phase C failed (MODE 1): Strike selection for short hedges failed: ${err.message}. Keeping long positions open. Position state set to PARTIAL_ENTRY.`
+      );
+      return;
     }
-
-    if (!bestContract) {
-      throw new Error(`No workable short strike found for ${optionType}`);
-    }
-    return bestContract;
-  };
-
-  let shortCEContract: ScripItem;
-  let shortPEContract: ScripItem;
-
-  try {
-    shortCEContract = await selectBestShortStrike(t0CEContracts, targetCEPremium, 'CE');
-    shortPEContract = await selectBestShortStrike(t0PEContracts, targetPEPremium, 'PE');
-    console.log(
-      `[ENTRY] Selected short CE: ${shortCEContract.symbol} (strike ${Math.round(parseFloat(shortCEContract.strike) / 100)})`
-    );
-    console.log(
-      `[ENTRY] Selected short PE: ${shortPEContract.symbol} (strike ${Math.round(parseFloat(shortPEContract.strike) / 100)})`
-    );
-  } catch (err: any) {
-    await sendAlert(
-      `🚨 Phase C failed: Strike selection for short hedges failed: ${err.message}. Keeping long positions open. Position state set to PARTIAL_ENTRY.`
-    );
-    return;
   }
+
+  console.log(
+    `[ENTRY] Selected short CE: ${shortCEContract.symbol} (strike ${Math.round(parseFloat(shortCEContract.strike) / 100)})`
+  );
+  console.log(
+    `[ENTRY] Selected short PE: ${shortPEContract.symbol} (strike ${Math.round(parseFloat(shortPEContract.strike) / 100)})`
+  );
 
   // Place short orders (2 lots each)
   let shortCEOrderId: string;

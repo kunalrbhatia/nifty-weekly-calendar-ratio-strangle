@@ -11,9 +11,13 @@ An **automated options trading bot** for the Indian market (Angel One SmartAPI) 
 
 ### Strategy Logic
 
-- **T1 (Next weekly expiry)**: Buy 1 lot CE + 1 lot PE at ~500 points OTM (long strangle)
-- **T0 (Current weekly expiry)**: Sell 2 lots CE + 2 lots PE at ~half the T1 premium (ratio hedge)
-- **Exit**: Monitor via WebSocket; close all legs if Nifty moves ±2% from entry spot, or at 3:20 PM on expiry day
+- **Mode 1 (`MODE=1`)**:
+  - **T1 (Next weekly expiry)**: Buy 1 lot CE + 1 lot PE at ~500 points OTM (long strangle)
+  - **T0 (Current weekly expiry)**: Sell 2 lots CE + 2 lots PE at ~half the T1 premium (ratio hedge)
+- **Mode 2 (`MODE=2`)**:
+  - **T1 (Next weekly expiry)**: Buy 1 lot CE + 1 lot PE at ~500 points OTM (long strangle)
+  - **T0 (Current weekly expiry)**: Sell 2 lots CE + 2 lots PE at the **exact same strikes** as the T1 long legs (`longCEStrike` and `longPEStrike`)
+- **Exit**: Monitor via WebSocket; close all legs if Nifty moves ±2% from entry spot, or at 3:15/3:20 PM on expiry day
 - **Lot size**: 65 (verified from Angel One scrip master as of July 2026)
 
 ---

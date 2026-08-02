@@ -10,6 +10,7 @@ import {
 } from '../helpers/scripMaster.js';
 import { roundStrikeToNearest100 } from './entry.js';
 import { loginToBroker } from '../helpers/login.js';
+import { env } from '../config/env.js';
 
 export async function generateBasketOrder(): Promise<void> {
   console.log('[BASKET] Generating basket...');
@@ -113,7 +114,7 @@ export async function generateBasketOrder(): Promise<void> {
     return;
   }
 
-  // Fetch long leg LTPs first to determine target premiums for short legs
+  // Fetch long leg LTPs
   let longCELtp = 0;
   let longPELtp = 0;
 
@@ -125,80 +126,90 @@ export async function generateBasketOrder(): Promise<void> {
     console.warn('[BASKET] Failed to fetch long leg LTPs, using default 80.');
   }
 
-  const targetCEPremium = longCELtp > 0 ? longCELtp / 2 : 80;
-  const targetPEPremium = longPELtp > 0 ? longPELtp / 2 : 80;
+  let shortCEContract: ScripItem | undefined;
+  let shortPEContract: ScripItem | undefined;
 
-  const t0CEContracts = scrips.filter(
-    (item) =>
-      item.name === 'NIFTY' &&
-      item.exch_seg === 'NFO' &&
-      item.instrumenttype === 'OPTIDX' &&
-      item.expiry === T0ScripStr &&
-      item.symbol.endsWith('CE')
-  );
+  if (env.MODE === 2) {
+    shortCEContract = findOptionContract(longCEStrike, 'CE', T0ScripStr);
+    shortPEContract = findOptionContract(longPEStrike, 'PE', T0ScripStr);
 
-  const t0PEContracts = scrips.filter(
-    (item) =>
-      item.name === 'NIFTY' &&
-      item.exch_seg === 'NFO' &&
-      item.instrumenttype === 'OPTIDX' &&
-      item.expiry === T0ScripStr &&
-      item.symbol.endsWith('PE')
-  );
+    if (!shortCEContract || !shortPEContract) {
+      console.error('[BASKET] Mode 2 short T0 contracts not found for exact strikes.');
+      return;
+    }
+  } else {
+    // Mode 1: Determine target premiums for short legs
+    const targetCEPremium = longCELtp > 0 ? longCELtp / 2 : 80;
+    const targetPEPremium = longPELtp > 0 ? longPELtp / 2 : 80;
 
-  const selectBestShortStrike = async (
-    contracts: ScripItem[],
-    target: number,
-    optionType: 'CE' | 'PE'
-  ): Promise<ScripItem> => {
-    const candidateContracts = contracts.filter((item) => {
-      const strikeVal = Math.round(parseFloat(item.strike) / 100);
-      if (strikeVal % 100 !== 0) return false;
-      return Math.abs(strikeVal - spotLTP) <= 1500;
-    });
+    const t0CEContracts = scrips.filter(
+      (item) =>
+        item.name === 'NIFTY' &&
+        item.exch_seg === 'NFO' &&
+        item.instrumenttype === 'OPTIDX' &&
+        item.expiry === T0ScripStr &&
+        item.symbol.endsWith('CE')
+    );
 
-    const tokens = candidateContracts.map((c) => c.token);
-    const ltpMap = await getBulkLTP('NFO', tokens);
+    const t0PEContracts = scrips.filter(
+      (item) =>
+        item.name === 'NIFTY' &&
+        item.exch_seg === 'NFO' &&
+        item.instrumenttype === 'OPTIDX' &&
+        item.expiry === T0ScripStr &&
+        item.symbol.endsWith('PE')
+    );
 
-    let bestContract: ScripItem | null = null;
-    let bestDiff = Infinity;
+    const selectBestShortStrike = async (
+      contracts: ScripItem[],
+      target: number,
+      optionType: 'CE' | 'PE'
+    ): Promise<ScripItem> => {
+      const candidateContracts = contracts.filter((item) => {
+        const strikeVal = Math.round(parseFloat(item.strike) / 100);
+        if (strikeVal % 100 !== 0) return false;
+        return Math.abs(strikeVal - spotLTP) <= 1500;
+      });
 
-    for (const contract of candidateContracts) {
-      const ltp = ltpMap[contract.token] || 0;
-      if (ltp <= 0) continue;
-      if (ltp < target) continue;
+      const tokens = candidateContracts.map((c) => c.token);
+      const ltpMap = await getBulkLTP('NFO', tokens);
 
-      const diff = Math.abs(ltp - target);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        bestContract = contract;
-      } else if (diff === bestDiff && bestContract) {
-        // Tie breaker: prefer farther OTM (higher strike for CE, lower strike for PE)
-        const currentStrike = Math.round(parseFloat(contract.strike) / 100);
-        const bestStrike = Math.round(parseFloat(bestContract.strike) / 100);
-        if (optionType === 'CE' && currentStrike > bestStrike) {
+      let bestContract: ScripItem | null = null;
+      let bestDiff = Infinity;
+
+      for (const contract of candidateContracts) {
+        const ltp = ltpMap[contract.token] || 0;
+        if (ltp <= 0) continue;
+        if (ltp < target) continue;
+
+        const diff = Math.abs(ltp - target);
+        if (diff < bestDiff) {
+          bestDiff = diff;
           bestContract = contract;
-        } else if (optionType === 'PE' && currentStrike < bestStrike) {
-          bestContract = contract;
+        } else if (diff === bestDiff && bestContract) {
+          const currentStrike = Math.round(parseFloat(contract.strike) / 100);
+          const bestStrike = Math.round(parseFloat(bestContract.strike) / 100);
+          if (optionType === 'CE' && currentStrike > bestStrike) {
+            bestContract = contract;
+          } else if (optionType === 'PE' && currentStrike < bestStrike) {
+            bestContract = contract;
+          }
         }
       }
+
+      if (!bestContract) {
+        throw new Error(`No short strike found for ${optionType}`);
+      }
+      return bestContract;
+    };
+
+    try {
+      shortCEContract = await selectBestShortStrike(t0CEContracts, targetCEPremium, 'CE');
+      shortPEContract = await selectBestShortStrike(t0PEContracts, targetPEPremium, 'PE');
+    } catch (err: any) {
+      console.error('[BASKET] Short strike selection failed:', err.message);
+      return;
     }
-
-    if (!bestContract) {
-      throw new Error(`No short strike found for ${optionType}`);
-    }
-    return bestContract;
-  };
-
-  let shortCEContract: ScripItem;
-  let shortPEContract: ScripItem;
-
-  try {
-    shortCEContract = await selectBestShortStrike(t0CEContracts, targetCEPremium, 'CE');
-    shortPEContract = await selectBestShortStrike(t0PEContracts, targetPEPremium, 'PE');
-  } catch (err: any) {
-    console.error('[BASKET] Short strike selection failed:', err.message);
-    return;
   }
 
   let shortCELtp = 0;

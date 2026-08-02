@@ -35,6 +35,10 @@ const envSchema = z.object({
   SLACK_SIGNING_SECRET: z.string().optional(),
 
   // Strategy Specific
+  MODE: z.coerce
+    .number()
+    .pipe(z.union([z.literal(1), z.literal(2)]))
+    .default(1),
   EXIT_THRESHOLD_PCT: z.coerce.number().default(2),
   WORTHLESS_LTP_THRESHOLD: z.coerce.number().default(5),
   TRADE_CLOSE_HOUR: z.coerce.number().default(15),
