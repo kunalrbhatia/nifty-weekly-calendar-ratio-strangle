@@ -166,6 +166,15 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 USE_TELEGRAM=false
 TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
+
+# Strategy Parameter Overrides (optional)
+MODE=1
+EXIT_THRESHOLD_PCT=2
+WORTHLESS_LTP_THRESHOLD=5
+TRADE_CLOSE_HOUR=15
+TRADE_CLOSE_MINUTE=20
+REPORT_HOUR=15
+REPORT_MINUTE=40
 ```
 
 ### 4. Testing with Paper Trading Mode
