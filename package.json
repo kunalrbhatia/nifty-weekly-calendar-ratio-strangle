@@ -15,6 +15,10 @@
     "lint": "eslint src",
     "generate-basket": "tsx src/jobs/generateBasket.ts",
     "show-pnl": "tsx src/jobs/showPnl.ts",
+    "backtest": "tsx backtest/run.ts",
+    "backtest:mode1": "tsx backtest/run.ts --mode 1",
+    "backtest:mode2": "tsx backtest/run.ts --mode 2",
+    "backtest:charts": "python3 backtest/scripts/plot.py",
     "verify": "pnpm run format:check && pnpm run lint && tsc --noEmit && pnpm run test:coverage && pnpm run build",
     "test:entry": "tsx src/jobs/runEntry.ts"
   },

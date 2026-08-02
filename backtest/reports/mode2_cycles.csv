@@ -1,0 +1,2 @@
+cycleId,status,skipReason,entryDate,entryTime,exitDate,exitTime,T0Expiry,T1Expiry,spotLtp,longCEStrike,longCEPremium,longPEStrike,longPEPremium,shortCEStrike,shortCEPremium,shortPEStrike,shortPEPremium,exitType,exitTimestamp,isWhipsaw,utilisedMargin,exitThreshold,grossPnl,totalCharges,netPnl,netReturnPct,isBleed
+2026-05-04_to_2026-05-05,SKIPPED_INCOMPLETE_DATA,MISSING_EXIT_SNAPSHOT,2026-05-04,0945,2026-05-05,1510,2026-05-05,2026-05-12,0,0,0.00,0,0.00,0,0.00,0,0.00,EXPIRY,,FALSE,180000,3600.00,0.00,0.00,0.00,0.00,FALSE
