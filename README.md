@@ -8,14 +8,16 @@ Automated options trading bot designed for the Indian equity derivatives market 
 
 The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options structure engineered to capture time-decay ($\theta$) while providing built-in tail-risk protection through next-weekly long options.
 
-### Option Structure
+### Option Structure & Modes
 
-| Expiry Leg                     | Option Type    | Ratio / Lots       | Strike Selection Method                                                            |
-| :----------------------------- | :------------- | :----------------- | :--------------------------------------------------------------------------------- |
-| **T1** (Next Weekly Expiry)    | Buy 1 Lot CE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike                     |
-| **T1** (Next Weekly Expiry)    | Buy 1 Lot PE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike                     |
-| **T0** (Current Weekly Expiry) | Sell 2 Lots CE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 CE premium (closest match to target) |
-| **T0** (Current Weekly Expiry) | Sell 2 Lots PE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 PE premium (closest match to target) |
+The strategy supports two operational modes via the `MODE` environment variable (`MODE=1` or `MODE=2`):
+
+| Expiry Leg                     | Option Type    | Ratio / Lots       | Mode 1 Strike Selection                                                            | Mode 2 Strike Selection                                        |
+| :----------------------------- | :------------- | :----------------- | :--------------------------------------------------------------------------------- | :------------------------------------------------------------- |
+| **T1** (Next Weekly Expiry)    | Buy 1 Lot CE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike                     | ~500 points OTM from Nifty spot, rounded to nearest 100 strike |
+| **T1** (Next Weekly Expiry)    | Buy 1 Lot PE   | **1 Lot** (Long)   | ~500 points OTM from Nifty spot, rounded to nearest 100 strike                     | ~500 points OTM from Nifty spot, rounded to nearest 100 strike |
+| **T0** (Current Weekly Expiry) | Sell 2 Lots CE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 CE premium (closest match to target) | **Exact same strike** as T1 CE (`longCEStrike`)                |
+| **T0** (Current Weekly Expiry) | Sell 2 Lots PE | **2 Lots** (Short) | 100-multiple strike with premium ≥ ~50% of T1 PE premium (closest match to target) | **Exact same strike** as T1 PE (`longPEStrike`)                |
 
 > **Lot Size**: `65` (Verified dynamically against live Angel One Scrip Master).
 

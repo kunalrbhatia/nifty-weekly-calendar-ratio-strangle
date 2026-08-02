@@ -17,14 +17,16 @@ Nifty weekly index options expire on **Tuesday**. At entry time, resolve two exp
 
 ### Position structure (4 legs after full entry)
 
-| Leg      | Expiry | Side | Qty    | Strike selection                                     |
-| -------- | ------ | ---- | ------ | ---------------------------------------------------- |
-| Long CE  | T1     | BUY  | 1 lot  | `round_to_nearest_100(Nifty_LTP + 500)`              |
-| Long PE  | T1     | BUY  | 1 lot  | `round_to_nearest_100(Nifty_LTP − 500)`              |
-| Short CE | T0     | SELL | 2 lots | strike whose CE premium ≈ `long_CE_fill_premium / 2` |
-| Short PE | T0     | SELL | 2 lots | strike whose PE premium ≈ `long_PE_fill_premium / 2` |
+The strategy supports two operational modes via environment variable `MODE`:
 
-This is a **long OTM strangle on T1** (+500 / −500 from spot), partially financed by **2× ratio short legs on T0** at half the long-leg fill premium (each leg handled independently).
+| Leg      | Expiry | Side | Qty    | Strike selection (Mode 1: `MODE=1`)                  | Strike selection (Mode 2: `MODE=2`)              |
+| -------- | ------ | ---- | ------ | ---------------------------------------------------- | ------------------------------------------------ |
+| Long CE  | T1     | BUY  | 1 lot  | `round_to_nearest_100(Nifty_LTP + 500)`              | `round_to_nearest_100(Nifty_LTP + 500)`          |
+| Long PE  | T1     | BUY  | 1 lot  | `round_to_nearest_100(Nifty_LTP − 500)`              | `round_to_nearest_100(Nifty_LTP − 500)`          |
+| Short CE | T0     | SELL | 2 lots | strike whose CE premium ≈ `long_CE_fill_premium / 2` | Exact same strike as T1 Long CE (`longCEStrike`) |
+| Short PE | T0     | SELL | 2 lots | strike whose PE premium ≈ `long_PE_fill_premium / 2` | Exact same strike as T1 Long PE (`longPEStrike`) |
+
+In **Mode 1**, short legs are chosen by target premium (~50% of long leg premium). In **Mode 2**, short legs select the exact same strike in the T0 current weekly expiry and sell 2 lots (double quantity).
 
 ### Strike rounding
 
