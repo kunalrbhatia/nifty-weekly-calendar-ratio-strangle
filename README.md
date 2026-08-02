@@ -202,9 +202,37 @@ Before putting real capital at risk, it is highly recommended to run the bot in 
 | `pnpm run start`           | Run compiled production build (`dist/src/main.js`)                |
 | `pnpm run show-pnl`        | Display high-visibility ASCII P&L banner from MTM log files       |
 | `pnpm run generate-basket` | Dry-run preview of strangle legs without placing orders           |
+| `pnpm run backtest`        | Run backtest engine over historical snapshots (both modes)        |
+| `pnpm run backtest:mode1`  | Run backtest engine for Mode 1 (½-premium ratio) only             |
+| `pnpm run backtest:mode2`  | Run backtest engine for Mode 2 (same-strike calendar) only        |
+| `pnpm run backtest:charts` | Generate performance comparison charts via Python matplotlib      |
 | `pnpm run test:entry`      | Manually execute entry sequence once                              |
 | `pnpm run verify`          | Full quality check (`prettier`, `eslint`, `tsc`, `jest`, `build`) |
 | `pnpm run test`            | Run Jest unit tests                                               |
+
+---
+
+## 📊 Backtesting Engine
+
+The repository includes a deterministic backtest engine in `backtest/` that replays historical option chain snapshots stored in the sibling repository `nifty-optionchain-data` (`data/chains/`).
+
+### Key Capabilities & Rules
+
+- **Production Logic Parity**: Uses exact strike selection rules from `src/jobs/entry.ts` and exit rules from `src/jobs/monitor.ts`.
+- **Gap Handling**: Reads `data/manifest.json` gaps and skips any cycle with missing data (`SKIPPED_INCOMPLETE_DATA`).
+- **Modes**: Replays Wed-Tue cycles for both **Mode 1 (½-premium ratio)** and **Mode 2 (same-strike calendar)** side-by-side.
+- **Metrics**: Computes P&L, Win Rate, Profit Factor, Expectancy, Max Drawdown, Sharpe Ratio, P(Breach Loss), Whipsaw Rate, and Expiry Bleed Rate.
+- **Reports**: Generates `backtest/reports/comparison_report.md`, per-mode CSV files (`mode1_cycles.csv`, `mode2_cycles.csv`), and equity curve charts.
+
+### CLI Usage
+
+```bash
+# Run backtest for both modes over full data lake
+pnpm backtest
+
+# Custom flags
+pnpm backtest --mode 1 --from 2026-05-01 --to 2026-07-31 --margin 180000
+```
 
 ---
 
