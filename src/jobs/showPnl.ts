@@ -34,40 +34,29 @@ export function formatPnlBanner(
   exitThreshold: number
 ): string {
   const isProfit = mtm >= 0;
-  const color = isProfit ? '\x1b[32m' : '\x1b[31m';
-  const bold = '\x1b[1m';
-  const reset = '\x1b[0m';
   const sign = isProfit ? '+' : '-';
   const absMtm = Math.abs(mtm).toFixed(2);
-  const statusStr = `Status: ${storeStatus}`;
-  const marginStr = `₹${marginUtilized.toFixed(2)}`;
-  const stopLossStr = `-₹${exitThreshold.toFixed(2)}`;
-  const profitTargetStr = `+₹${exitThreshold.toFixed(2)}`;
+  const emoji = isProfit ? '🟢' : '🔴';
+  const statusEmoji = storeStatus === 'FULL_ENTRY' ? '🎯' : storeStatus === 'NONE' ? '💤' : '⚙️';
 
-  const border =
-    '═════════════════════════════════════════════════════════════════════════════════';
-  const thinBorder =
-    '─────────────────────────────────────────────────────────────────────────────────';
+  const border = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
 
-  return `
-${border}
-                          📊 REAL-TIME NIFTY STRANGLE P&L
-${border}
-
-    ${bold}CURRENT MTM P&L:${reset}
-    ✨✨✨  ${bold}${color}${sign}₹ ${absMtm}${reset}  ✨✨✨
-
-${thinBorder}
-    STATUS          :   ${statusStr.padEnd(20)}
-    MARGIN UTILIZED :   ${marginStr.padEnd(20)}
-    STOP LOSS LIMIT :   ${stopLossStr.padEnd(20)}
-    PROFIT TARGET   :   ${profitTargetStr.padEnd(20)}
-    LAST UPDATED    :   ${timestamp.padEnd(20)}
-
-${thinBorder}
-  [Source]: MTM Logger (logs/mtm/mtm-nifty-*.log) | Direct log parsing active
-${border}
-`;
+  return [
+    border,
+    '📊  NIFTY STRANGLE P&L',
+    border,
+    `${emoji}  MTM : ${sign}₹ ${absMtm}`,
+    '',
+    `Status : ${statusEmoji} ${storeStatus}`,
+    marginUtilized > 0 ? `Margin : ₹ ${marginUtilized.toFixed(2)}` : '',
+    marginUtilized > 0
+      ? `SL/PT  : -₹ ${exitThreshold.toFixed(2)} / +₹ ${exitThreshold.toFixed(2)}`
+      : '',
+    `🕐 ${timestamp}`,
+    border,
+  ]
+    .filter((line) => line !== '')
+    .join('\n');
 }
 
 export function runShowPnl(): void {
