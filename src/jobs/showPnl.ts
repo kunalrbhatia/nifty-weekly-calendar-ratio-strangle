@@ -49,7 +49,9 @@ export function formatPnlBanner(
     '',
     `Status : ${statusEmoji} ${storeStatus}`,
     marginUtilized > 0 ? `Margin : ₹ ${marginUtilized.toFixed(2)}` : '',
-    marginUtilized > 0 ? `SL/PT  : -₹ ${exitThreshold.toFixed(2)} / +₹ ${exitThreshold.toFixed(2)}` : '',
+    marginUtilized > 0
+      ? `SL/PT  : -₹ ${exitThreshold.toFixed(2)} / +₹ ${exitThreshold.toFixed(2)}`
+      : '',
     `🕐 ${timestamp}`,
     border,
   ]
