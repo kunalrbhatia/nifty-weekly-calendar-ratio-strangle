@@ -38,7 +38,10 @@ export function formatPnlBanner(
   const absMtm = Math.abs(mtm).toFixed(2);
   const emoji = isProfit ? '🟢' : '🔴';
   const statusEmoji = storeStatus === 'FULL_ENTRY' ? '🎯' : storeStatus === 'NONE' ? '💤' : '⚙️';
-  const time = new Date(timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const time = new Date(timestamp).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   const line1 = `📊 NIFTY STRANGLE  ${emoji} ${sign}₹ ${absMtm}`;
   const line2 =
