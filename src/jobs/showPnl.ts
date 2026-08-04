@@ -38,25 +38,19 @@ export function formatPnlBanner(
   const absMtm = Math.abs(mtm).toFixed(2);
   const emoji = isProfit ? '🟢' : '🔴';
   const statusEmoji = storeStatus === 'FULL_ENTRY' ? '🎯' : storeStatus === 'NONE' ? '💤' : '⚙️';
+  const time = new Date(timestamp).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
-  const border = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-
-  return [
-    border,
-    '📊  NIFTY STRANGLE P&L',
-    border,
-    `${emoji}  MTM : ${sign}₹ ${absMtm}`,
-    '',
-    `Status : ${statusEmoji} ${storeStatus}`,
-    marginUtilized > 0 ? `Margin : ₹ ${marginUtilized.toFixed(2)}` : '',
+  const line1 = `📊 NIFTY STRANGLE  ${emoji} ${sign}₹ ${absMtm}`;
+  const line2 =
     marginUtilized > 0
-      ? `SL/PT  : -₹ ${exitThreshold.toFixed(2)} / +₹ ${exitThreshold.toFixed(2)}`
-      : '',
-    `🕐 ${timestamp}`,
-    border,
-  ]
-    .filter((line) => line !== '')
-    .join('\n');
+      ? `${statusEmoji} ${storeStatus}  ·  SL −₹${exitThreshold.toFixed(0)}  ·  PT +₹${exitThreshold.toFixed(0)}`
+      : `${statusEmoji} ${storeStatus}`;
+  const line3 = `🕐 ${time}`;
+
+  return [line1, line2, line3].join('\n');
 }
 
 export function runShowPnl(): void {
