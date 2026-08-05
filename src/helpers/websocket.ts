@@ -44,7 +44,7 @@ export async function connectWebSocket(tokens: string[]): Promise<void> {
     jwttoken: session.jwtToken,
     apikey: env.API_KEY,
     clientcode: env.CLIENT_CODE,
-    feedtype: 'market_feed',
+    feedtype: session.feedToken, // x-feed-token header = login feedToken, NOT 'market_feed'
   });
 
   await wsClient.connect();
@@ -81,10 +81,16 @@ export async function connectWebSocket(tokens: string[]): Promise<void> {
     // The smartapi-javascript returns ticks which might have different keys based on mode.
     // Standard LTP keys: data.token, data.last_traded_price
     if (data) {
-      const token = data.token || data.symboltoken;
-      const ltp = parseFloat(data.last_traded_price || data.ltp || '0');
+      // smart-stream tokens arrive zero/quote-padded (e.g. "41000" or 41000 with
+      // trailing \u0000) — strip everything non-numeric so they match the store.
+      const rawToken = data.token || data.symboltoken;
+      const token = String(rawToken).replace(/[^0-9]/g, '');
+      // smart-stream LTP is sent ×100 (2 implicit decimals) — divide to rupees.
+      const ltp = parseFloat(data.last_traded_price || data.ltp || '0') / 100;
       if (token && ltp > 0) {
         dispatchTick({ token, ltp });
+      } else {
+        console.log(`[WS-DEBUG] tick skipped token=${JSON.stringify(rawToken)} ltp=${ltp}`);
       }
     }
   });
