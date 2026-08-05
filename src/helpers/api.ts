@@ -123,10 +123,11 @@ export async function getUtilisedMargin(): Promise<number> {
     });
 
     if (response.data?.status && response.data?.data) {
-      // The utilised margin is usually under data.net or data.utilisedDebits/netMargin
-      // Let's parse utilised margin or net margin.
+      // NOTE: API returns 'utiliseddebits' (all-lowercase). The camelCase
+      // 'utilisedDebits' is undefined in JS and silently falls through to
+      // data.net (available CASH — NOT margin), inflating the exit threshold.
       const data = response.data.data;
-      const utilised = parseFloat(data.utilisedDebits || data.net || '0');
+      const utilised = parseFloat(data.utiliseddebits || data.utilisedDebits || data.net || '0');
       return utilised;
     }
     throw new Error(response.data?.message || 'getRMS API returned empty/failed status');
