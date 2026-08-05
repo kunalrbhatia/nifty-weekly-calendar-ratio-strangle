@@ -7,10 +7,10 @@ import { loginToBroker } from './helpers/login.js';
 import { downloadScripMaster, loadCachedScrips } from './helpers/scripMaster.js';
 import { isHoliday, getNextTradingDay, getISTDateParts } from './helpers/holidayCheck.js';
 import { runEntrySequence } from './jobs/entry.js';
-import { executeExit } from './jobs/monitor.js';
+import { executeExit, processTick } from './jobs/monitor.js';
 import { runReportGeneration } from '../analysis/generateReport.js';
 import { loadStore } from './store/index.js';
-import { connectWebSocket } from './helpers/websocket.js';
+import { connectWebSocket, addTickListener } from './helpers/websocket.js';
 import { sendAlert } from './notifier.js';
 
 async function initializeApp() {
@@ -32,6 +32,12 @@ async function initializeApp() {
   } catch (err) {
     console.warn('Failed to download scrip master on startup, using cached file.');
   }
+
+  // Register the MTM monitor as the tick consumer BEFORE any WebSocket connects
+  // (entry.ts and the resume path below both dispatch through addTickListener).
+  // Without this, ticks arrive but processTick never runs — no MTM logging,
+  // no threshold-breach exit. This wiring was missing since PR #1.
+  addTickListener(processTick);
 
   // Resume active trade monitoring if open
   if (store.status === 'FULL_ENTRY' || store.status === 'PARTIAL_ENTRY') {
