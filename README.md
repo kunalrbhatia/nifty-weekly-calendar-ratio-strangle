@@ -8,6 +8,8 @@ Automated options trading bot designed for the Indian equity derivatives market 
 
 The **Weekly Calendar Ratio Strangle** is a neutral-to-rangebound options structure engineered to capture time-decay ($\theta$) while providing built-in tail-risk protection through next-weekly long options.
 
+<img width="620" height="218" alt="image" src="https://github.com/user-attachments/assets/c77a3496-1b55-4483-8476-41146c792fb3" />
+
 ### Option Structure & Modes
 
 The strategy supports two operational modes via the `MODE` environment variable (`MODE=1` or `MODE=2`):
