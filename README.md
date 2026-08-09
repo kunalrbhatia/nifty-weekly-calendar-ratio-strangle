@@ -220,7 +220,9 @@ The repository includes a deterministic backtest engine in `backtest/` that repl
 
 ### Key Capabilities & Rules
 
-- **Production Logic Parity**: Uses exact strike selection rules from `src/jobs/entry.ts` and exit rules from `src/jobs/monitor.ts`.
+- **Production Logic Parity**: Uses exact strike selection rules from `src/jobs/entry.ts` and exit rules from `src/jobs/monitor.ts`. Exit time defaults to Tuesday 15:20 IST matching production wind-down cron.
+- **Realistic Sizing & Margin**: Defaults to ₹3,37,134 per strangle position (measured live 4-leg margin) for realistic position sizing and 2% exit threshold computation (₹6,743).
+- **Complete Charges Model**: Computes brokerage (₹20/executed order), STT (0.125% on sell turnover), exchange transaction charges (~0.05% on total turnover), GST (18% on brokerage + exchange charges), and SEBI fee (₹10/crore).
 - **Gap Handling**: Reads `data/manifest.json` gaps and skips any cycle with missing data (`SKIPPED_INCOMPLETE_DATA`).
 - **Modes**: Replays Wed-Tue cycles for both **Mode 1 (½-premium ratio)** and **Mode 2 (same-strike calendar)** side-by-side.
 - **Metrics**: Computes P&L, Win Rate, Profit Factor, Expectancy, Max Drawdown, Sharpe Ratio, P(Breach Loss), Whipsaw Rate, and Expiry Bleed Rate.
@@ -229,11 +231,11 @@ The repository includes a deterministic backtest engine in `backtest/` that repl
 ### CLI Usage
 
 ```bash
-# Run backtest for both modes over full data lake
+# Run backtest for both modes over full data lake (margin ₹3,37,134, exit time 15:20)
 pnpm backtest
 
 # Custom flags
-pnpm backtest --mode 1 --from 2026-05-01 --to 2026-07-31 --margin 180000
+pnpm backtest --mode 1 --from 2026-05-01 --to 2026-07-31 --margin 337134
 ```
 
 ---

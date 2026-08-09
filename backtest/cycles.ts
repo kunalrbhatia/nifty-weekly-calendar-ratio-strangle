@@ -6,7 +6,7 @@ export interface CycleDef {
   entryDate: string; // YYYY-MM-DD
   entryTime: string; // "0945" (or "0940" fallback)
   exitDate: string; // YYYY-MM-DD
-  exitTime: string; // "1515"
+  exitTime: string; // Preferred "1520" (live wind-down cron is Tuesday 15:20 IST from TRADE_CLOSE_HOUR/MINUTE), fallback "1525", "1515"
   T0Expiry: string; // YYYY-MM-DD
   T1Expiry: string; // YYYY-MM-DD
   tradingDays: string[]; // List of YYYY-MM-DD included in cycle
@@ -120,13 +120,13 @@ export function buildWeeklyCycles(
           dataLoader.loadSnapshot(dateStr, '0940', T1Expiry);
 
         const exitS0 =
-          dataLoader.loadSnapshot(exitDateStr, '1515', T0Expiry) ||
           dataLoader.loadSnapshot(exitDateStr, '1520', T0Expiry) ||
-          dataLoader.loadSnapshot(exitDateStr, '1510', T0Expiry);
+          dataLoader.loadSnapshot(exitDateStr, '1525', T0Expiry) ||
+          dataLoader.loadSnapshot(exitDateStr, '1515', T0Expiry);
         const exitS1 =
-          dataLoader.loadSnapshot(exitDateStr, '1515', T1Expiry) ||
           dataLoader.loadSnapshot(exitDateStr, '1520', T1Expiry) ||
-          dataLoader.loadSnapshot(exitDateStr, '1510', T1Expiry);
+          dataLoader.loadSnapshot(exitDateStr, '1525', T1Expiry) ||
+          dataLoader.loadSnapshot(exitDateStr, '1515', T1Expiry);
 
         let isValidData = true;
         let skipReason: string | undefined;
@@ -150,11 +150,11 @@ export function buildWeeklyCycles(
           entryDate: dateStr,
           entryTime: dataLoader.loadSnapshot(dateStr, '0945', T0Expiry) ? '0945' : '0940',
           exitDate: exitDateStr,
-          exitTime: dataLoader.loadSnapshot(exitDateStr, '1515', T0Expiry)
-            ? '1515'
-            : dataLoader.loadSnapshot(exitDateStr, '1520', T0Expiry)
-              ? '1520'
-              : '1510',
+          exitTime: dataLoader.loadSnapshot(exitDateStr, '1520', T0Expiry)
+            ? '1520'
+            : dataLoader.loadSnapshot(exitDateStr, '1525', T0Expiry)
+              ? '1525'
+              : '1515',
           T0Expiry,
           T1Expiry,
           tradingDays,
