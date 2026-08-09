@@ -132,7 +132,11 @@ async function initializeApp() {
         `[CRON] Running expiry-day exit wind-down at ${env.TRADE_CLOSE_HOUR}:${env.TRADE_CLOSE_MINUTE} IST...`
       );
       try {
-        await executeExit('EXPIRY_WIND_DOWN', true);
+        // Wind-down closes ALL legs (shorts + longs) on the T0-expiry Tuesday.
+        // Passing expiryOnly=true would skip the T1 longs (they don't expire
+        // that day), leaving them open an extra week and blocking the next
+        // Wednesday entry. Confirmed intent: exit the whole position here.
+        await executeExit('EXPIRY_WIND_DOWN');
       } catch (err: any) {
         await sendAlert(`🚨 Expiry-day wind-down failed: ${err.message}`);
       }
