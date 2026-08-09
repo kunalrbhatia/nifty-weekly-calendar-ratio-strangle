@@ -243,7 +243,17 @@ describe('Backtest Unit Tests: strikes & pnl', () => {
     );
   });
 
-  test('P&L Leg Calculations and MTM', () => {
+  test('P&L Leg Calculations and MTM with Complete Charges Model', () => {
+    // Config: brokerage = ₹20, STT = 0.125%, Exchange = 0.05%, GST = 18%, SEBI = 0.0001%
+    // 1. Long CLOSED leg: BUY qty 65, fillPremium 80, exit 100
+    // Gross PnL = (100 - 80) * 65 = 1300
+    // Brokerage = 2 * 20 = 40
+    // STT (sell exit turnover = 100 * 65 = 6500): 6500 * 0.00125 = 8.125
+    // Total turnover = (80 + 100) * 65 = 11700
+    // Exchange = 11700 * 0.0005 = 5.85
+    // GST = (40 + 5.85) * 0.18 = 8.253
+    // SEBI = 11700 * 0.000001 = 0.0117
+    // Total Charges = 40 + 8.125 + 5.85 + 8.253 + 0.0117 = 62.2397
     const legBuy = {
       symbol: 'TEST_BUY',
       strike: 24700,
@@ -256,12 +266,32 @@ describe('Backtest Unit Tests: strikes & pnl', () => {
 
     const pnlBuy = calculateLegPnlAndCharges(legBuy, 100, defaultConfig);
     expect(pnlBuy.exitStatus).toBe('CLOSED');
-    expect(pnlBuy.legPnl).toBeCloseTo(1300 - 48.125);
+    expect(pnlBuy.charges).toBeCloseTo(62.2397, 4);
+    expect(pnlBuy.legPnl).toBeCloseTo(1300 - 62.2397, 4);
 
+    // 2. Long EXPIRED_UNBOOKED leg: BUY qty 65, fillPremium 80, exit 2 (<= 5)
+    // Gross PnL = (0 - 80) * 65 = -5200
+    // Brokerage = 1 * 20 = 20 (entry only)
+    // STT = 0 (no sell turnover)
+    // Total turnover = 80 * 65 = 5200
+    // Exchange = 5200 * 0.0005 = 2.60
+    // GST = (20 + 2.60) * 0.18 = 4.068
+    // SEBI = 5200 * 0.000001 = 0.0052
+    // Total Charges = 20 + 0 + 2.60 + 4.068 + 0.0052 = 26.6732
     const pnlWorthless = calculateLegPnlAndCharges(legBuy, 2, defaultConfig);
     expect(pnlWorthless.exitStatus).toBe('EXPIRED_UNBOOKED');
-    expect(pnlWorthless.legPnl).toBeCloseTo(-5200 - 20);
+    expect(pnlWorthless.charges).toBeCloseTo(26.6732, 4);
+    expect(pnlWorthless.legPnl).toBeCloseTo(-5200 - 26.6732, 4);
 
+    // 3. Short CLOSED leg: SELL qty 130, fillPremium 40, exit 20
+    // Gross PnL = (40 - 20) * 130 = 2600
+    // Brokerage = 2 * 20 = 40
+    // STT (sell entry turnover = 40 * 130 = 5200): 5200 * 0.00125 = 6.50
+    // Total turnover = (40 + 20) * 130 = 7800
+    // Exchange = 7800 * 0.0005 = 3.90
+    // GST = (40 + 3.90) * 0.18 = 7.902
+    // SEBI = 7800 * 0.000001 = 0.0078
+    // Total Charges = 40 + 6.50 + 3.90 + 7.902 + 0.0078 = 58.3098
     const legSell = {
       symbol: 'TEST_SELL',
       strike: 24700,
@@ -274,11 +304,22 @@ describe('Backtest Unit Tests: strikes & pnl', () => {
 
     const pnlSellClosed = calculateLegPnlAndCharges(legSell, 20, defaultConfig);
     expect(pnlSellClosed.exitStatus).toBe('CLOSED');
-    expect(pnlSellClosed.legPnl).toBeCloseTo(2553.5);
+    expect(pnlSellClosed.charges).toBeCloseTo(58.3098, 4);
+    expect(pnlSellClosed.legPnl).toBeCloseTo(2600 - 58.3098, 4);
 
+    // 4. Short EXPIRED_UNBOOKED leg: SELL qty 130, fillPremium 40, exit 2 (<= 5)
+    // Gross PnL = (40 - 0) * 130 = 5200
+    // Brokerage = 1 * 20 = 20
+    // STT (sell entry turnover = 5200): 5200 * 0.00125 = 6.50
+    // Total turnover = 40 * 130 = 5200
+    // Exchange = 5200 * 0.0005 = 2.60
+    // GST = (20 + 2.60) * 0.18 = 4.068
+    // SEBI = 5200 * 0.000001 = 0.0052
+    // Total Charges = 20 + 6.50 + 2.60 + 4.068 + 0.0052 = 33.1732
     const pnlSellWorthless = calculateLegPnlAndCharges(legSell, 2, defaultConfig);
     expect(pnlSellWorthless.exitStatus).toBe('EXPIRED_UNBOOKED');
-    expect(pnlSellWorthless.legPnl).toBeCloseTo(5173.5);
+    expect(pnlSellWorthless.charges).toBeCloseTo(33.1732, 4);
+    expect(pnlSellWorthless.legPnl).toBeCloseTo(5200 - 33.1732, 4);
 
     const mtmNormal = calculateLegMTM(legSell, 30, defaultConfig.worthlessLtpThreshold);
     expect(mtmNormal).toBe(1300);

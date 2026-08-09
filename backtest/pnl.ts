@@ -59,14 +59,11 @@ export function calculateLegPnlAndCharges(
   }
 
   // Calculate charges:
-  // Entry order + Exit order (if CLOSED). If EXPIRED_UNBOOKED, no exit order executed.
-  let orderCount = 1;
-  if (exitStatus === 'CLOSED') {
-    orderCount = 2;
-  }
+  // 1. Brokerage: ₹20 per executed order (entry order always; exit order only if CLOSED)
+  const orderCount = exitStatus === 'CLOSED' ? 2 : 1;
   const brokerage = orderCount * config.chargesPerOrder;
 
-  // STT on sell side turnover
+  // 2. STT: 0.125% of sell-side premium turnover only
   let sellTurnover = 0;
   if (leg.side === 'SELL') {
     sellTurnover += leg.fillPremium * leg.qty;
@@ -74,9 +71,22 @@ export function calculateLegPnlAndCharges(
   if (leg.side === 'BUY' && exitStatus === 'CLOSED') {
     sellTurnover += exitPrice * leg.qty;
   }
-
   const stt = sellTurnover * config.sttRateOnSellPremium;
-  const charges = brokerage + stt;
+
+  // 3. Exchange transaction charge: applied to total premium turnover (buy + sell, entry and exit if executed)
+  let totalTurnover = leg.fillPremium * leg.qty;
+  if (exitStatus === 'CLOSED') {
+    totalTurnover += exitPrice * leg.qty;
+  }
+  const exchangeTxnCharge = totalTurnover * config.exchangeTxnRate;
+
+  // 4. GST: 18% applied to (brokerage + exchange transaction charge)
+  const gst = (brokerage + exchangeTxnCharge) * config.gstRate;
+
+  // 5. SEBI fee: 0.0001% (₹10/crore) applied to total premium turnover
+  const sebiFee = totalTurnover * config.sebiRate;
+
+  const charges = brokerage + stt + exchangeTxnCharge + gst + sebiFee;
 
   return { legPnl: grossPnl - charges, charges, exitStatus };
 }
