@@ -55,7 +55,35 @@ export function buildWeeklyCycles(
 
   const cycles: CycleDef[] = [];
 
-  for (const dateStr of availableDates) {
+  // Entry happens ONLY on Wednesday (day 3), or the next trading day if
+  // Wednesday is a holiday — mirroring src/main.ts entry cron logic.
+  // (Regression guard: this filter was once lost in a merge, causing the
+  // backtest to build a cycle for EVERY trading day and inflate the sample
+  // ~5x. Keep it.)
+  const entryDates = availableDates.filter((dateStr) => {
+    const d = parseDateStr(dateStr);
+    const day = d.getDay();
+    if (day === 3) return true; // Wednesday
+
+    // Holiday fallback: this date is the resolved entry day if the current
+    // week's Wednesday was a holiday and this is the next trading day.
+    if (isHoliday(d)) return false;
+
+    // Walk back up to 3 days: if any of them is the week's Wednesday AND a
+    // holiday, and this is the first non-holiday day after it → entry day.
+    for (let back = 1; back <= 3; back++) {
+      const prev = new Date(d.getTime() - back * 86400000);
+      if (prev.getDay() === 3 && isHoliday(prev)) {
+        // This date is the next trading day after a holiday Wednesday
+        // (availableDates only contains non-holiday days with data).
+        return true;
+      }
+      if (prev.getDay() === 3) break; // reached a non-holiday Wednesday — not a fallback
+    }
+    return false;
+  });
+
+  for (const dateStr of entryDates) {
     const expiries = dataLoader.getExpiriesForDate(dateStr);
     const validExpiries = expiries.filter((exp) => exp >= dateStr).sort();
 
