@@ -34,8 +34,11 @@ export function formatMtmLogLine(date: Date, index: 'NIFTY', mtm: number): strin
 }
 
 export function calculateLegMTL(leg: LegState, currentLtp: number): number {
-  // If option is worthless, mark LTP as 0 for MTM recomputation
-  const markLtp = currentLtp < env.WORTHLESS_LTP_THRESHOLD ? 0 : currentLtp;
+  // Live mark-to-market uses the ACTUAL LTP. The ₹5 worthless threshold is
+  // NOT applied here: it only governs whether the exit flow squares off a leg
+  // (monitor.ts executeExit). Marking an open leg as 0 while it still trades
+  // at ₹3-5 inflates short-leg credit and distorts the banner/breach MTM.
+  const markLtp = currentLtp;
 
   if (leg.side === 'BUY') {
     return (markLtp - leg.fillPremium) * leg.qty;
