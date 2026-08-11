@@ -86,8 +86,14 @@ export async function placeMarketOrder(params: OrderParams): Promise<string> {
     // token-auth failures (live incident 2026-08-11: wind-down exit orders
     // failed with "Invalid Token", stranding long legs).
     const msg = `${err?.message || ''} ${err?.response?.data?.message || ''}`.toLowerCase();
-    if (/invalid token|token invalid|unauthorized|not authenticated|session.*expired|token.*expired/.test(msg)) {
-      console.log(`[ORDER] Token-auth failure detected (${err.message}). Re-logging in and retrying once...`);
+    if (
+      /invalid token|token invalid|unauthorized|not authenticated|session.*expired|token.*expired/.test(
+        msg
+      )
+    ) {
+      console.log(
+        `[ORDER] Token-auth failure detected (${err.message}). Re-logging in and retrying once...`
+      );
       try {
         await ensureFreshSession();
         const freshApi = await getSmartApi();
