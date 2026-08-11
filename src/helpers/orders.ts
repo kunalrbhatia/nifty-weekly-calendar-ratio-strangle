@@ -1,5 +1,6 @@
 import { getSmartApi, retryCall } from './api.js';
 import { isPaperMode } from './modeManager.js';
+import { ensureFreshSession } from './login.js';
 import { sendAlert } from '../notifier.js';
 
 export interface OrderParams {
@@ -78,6 +79,47 @@ export async function placeMarketOrder(params: OrderParams): Promise<string> {
       }
     } catch (reconcileErr) {
       console.error('Failed to reconcile order book:', reconcileErr);
+    }
+
+    // Controlled retry: if the failure looks like a stale/expired session token,
+    // re-login once and retry the order once. NOT a blind retry — only for
+    // token-auth failures (live incident 2026-08-11: wind-down exit orders
+    // failed with "Invalid Token", stranding long legs).
+    const msg = `${err?.message || ''} ${err?.response?.data?.message || ''}`.toLowerCase();
+    if (
+      /invalid token|token invalid|unauthorized|not authenticated|session.*expired|token.*expired/.test(
+        msg
+      )
+    ) {
+      console.log(
+        `[ORDER] Token-auth failure detected (${err.message}). Re-logging in and retrying once...`
+      );
+      try {
+        await ensureFreshSession();
+        const freshApi = await getSmartApi();
+        const retry = await freshApi.placeOrder({
+          variety: 'NORMAL',
+          tradingsymbol: symbol,
+          symboltoken: token,
+          transactiontype: side,
+          exchange: 'NFO',
+          ordertype: 'MARKET',
+          producttype: 'CARRYFORWARD',
+          duration: 'DAY',
+          price: '0',
+          squareoff: '0',
+          stoploss: '0',
+          trailingstoploss: '0',
+          quantity: String(qty),
+        });
+        if (retry.status && retry.data && retry.data.orderid) {
+          console.log(`✓ Order placed after session refresh: ${retry.data.orderid}`);
+          return retry.data.orderid;
+        }
+        console.error(`Retry after session refresh returned empty response: ${retry.message}`);
+      } catch (retryErr: any) {
+        console.error(`Order retry after session refresh failed for ${symbol}:`, retryErr);
+      }
     }
 
     throw err;

@@ -39,3 +39,16 @@ export async function loginToBroker(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Guarantees a fresh, valid broker session BEFORE a critical batch of orders
+ * (e.g. the Tuesday wind-down). The JWT expires after ~24h; if it is stale,
+ * order placement fails with "Invalid Token" and open legs would be stranded.
+ * Safe to call before exit: the WS feed token is refreshed on reconnect.
+ */
+export async function ensureFreshSession(): Promise<void> {
+  const ok = await loginToBroker();
+  if (!ok) {
+    throw new Error('ensureFreshSession: broker re-login failed — cannot proceed with orders');
+  }
+}
