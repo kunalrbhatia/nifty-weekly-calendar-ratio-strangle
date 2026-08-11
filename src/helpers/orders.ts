@@ -116,7 +116,7 @@ export async function placeMarketOrder(params: OrderParams): Promise<string> {
           console.log(`✓ Order placed after session refresh: ${retry.data.orderid}`);
           return retry.data.orderid;
         }
-        throw new Error(retry.message || 'Retry after session refresh returned empty response');
+        console.error(`Retry after session refresh returned empty response: ${retry.message}`);
       } catch (retryErr: any) {
         console.error(`Order retry after session refresh failed for ${symbol}:`, retryErr);
       }
