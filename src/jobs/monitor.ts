@@ -4,6 +4,7 @@ import { getISTDateParts, getISTDateString } from '../helpers/holidayCheck.js';
 import { isPanicSwitchActive } from '../helpers/modeManager.js';
 import { loadStore, saveStore, LegState, PositionState } from '../store/index.js';
 import { placeMarketOrder, confirmOrderFill } from '../helpers/orders.js';
+import { ensureFreshSession } from '../helpers/login.js';
 import { sendAlert } from '../notifier.js';
 import { disconnectWebSocket } from '../helpers/websocket.js';
 import { env } from '../config/env.js';
@@ -110,6 +111,12 @@ export async function executeExit(
   console.log(`[EXIT] Pre-close snapshot saved: ${snapshotFile}`);
 
   const exitTime = new Date().toISOString();
+
+  // CRITICAL: guarantee a fresh broker session BEFORE placing exit orders.
+  // The JWT expires ~24h after login; a stale token makes order placement fail
+  // with "Invalid Token", stranding open legs (seen live on 2026-08-11
+  // wind-down: long legs failed to exit, needed manual intervention).
+  await ensureFreshSession();
 
   // Process legs
   for (const leg of store.legs) {
