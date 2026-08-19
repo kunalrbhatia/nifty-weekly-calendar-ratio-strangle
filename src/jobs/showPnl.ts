@@ -38,10 +38,10 @@ export function formatPnlBanner(
   const absMtm = Math.abs(mtm).toFixed(2);
   const emoji = isProfit ? '🟢' : '🔴';
   const statusEmoji = storeStatus === 'FULL_ENTRY' ? '🎯' : storeStatus === 'NONE' ? '💤' : '⚙️';
-  const time = new Date(timestamp).toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  // Log timestamps are already IST ([DD/MM/YYYY, h:mm:ss am/pm]) — parse directly.
+  // new Date() on "10/8/2026, 1:03:00 pm" returns Invalid Date in Node and the
+  // server clock is UTC, so never round-trip through Date for this banner.
+  const time = formatISTClockTime(timestamp);
 
   const line1 = `📊 NIFTY STRANGLE  ${emoji} ${sign}₹ ${absMtm}`;
   const line2 =
@@ -51,6 +51,31 @@ export function formatPnlBanner(
   const line3 = `🕐 ${time}`;
 
   return [line1, line2, line3].join('\n');
+}
+
+/**
+ * Formats an MTM-log timestamp "[DD/MM/YYYY, h:mm:ss am/pm]" (IST) as
+ * "h:mm am/pm" WITHOUT constructing a Date — the log format is not
+ * Date-parseable in Node and the server clock is UTC, not IST.
+ * Falls back to the current IST clock time if the string is unexpected.
+ */
+export function formatISTClockTime(timestamp: string): string {
+  const m = timestamp.match(
+    /^(\d{1,2})\/(\d{1,2})\/\d{4},\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)$/i
+  );
+  if (m) {
+    let hour = parseInt(m[3], 10);
+    const minute = m[4];
+    const meridiem = m[5].toLowerCase();
+    if (meridiem === 'pm' && hour < 12) hour += 12;
+    if (meridiem === 'am' && hour === 12) hour = 0;
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour12}:${minute} ${meridiem === 'am' ? 'am' : 'pm'}`;
+  }
+  // Fallback: current IST clock time (getISTDateParts returns 12h hour + dayPeriod)
+  const parts = getISTDateParts(new Date());
+  const meridiem = parts.dayPeriod || (parts.hour >= 12 ? 'pm' : 'am');
+  return `${parts.hour}:${String(parts.minute).padStart(2, '0')} ${meridiem}`;
 }
 
 export function runShowPnl(): void {
