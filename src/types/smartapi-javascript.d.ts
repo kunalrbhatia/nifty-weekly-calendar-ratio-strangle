@@ -12,6 +12,7 @@ declare module 'smartapi-javascript' {
     getRMSLimit(): Promise<any>;
     placeOrder(params: any): Promise<any>;
     getOrderBook(): Promise<any>;
+    getPosition(): Promise<any>;
     marketData(params: any): Promise<any>;
   }
 
