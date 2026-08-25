@@ -12,6 +12,7 @@ import { runReportGeneration } from '../analysis/generateReport.js';
 import { loadStore } from './store/index.js';
 import { connectWebSocket, addTickListener } from './helpers/websocket.js';
 import { sendAlert } from './notifier.js';
+import { reconcileStoreWithBroker } from './helpers/reconcile.js';
 
 async function initializeApp() {
   console.log('--- Initializing Nifty weekly strangle trading bot ---');
@@ -44,6 +45,22 @@ async function initializeApp() {
     console.log(
       `[RESUME] Active trade found in state: ${store.status}. Resuming WebSocket monitor...`
     );
+
+    // Reconciliation guard (Aug 2026 incident): before trusting the store, compare
+    // OPEN legs against the broker's actual positions. A stale store has caused the
+    // algo to monitor/log/exit phantom legs (position closed at broker but store
+    // still FULL_ENTRY). Alert on mismatch; do NOT auto-close — human decides.
+    try {
+      const { ok } = await reconcileStoreWithBroker();
+      if (!ok) {
+        console.error(
+          '[RESUME] Position reconciliation FAILED — store does not match broker. Check Telegram alert.'
+        );
+      }
+    } catch (err: any) {
+      console.error('[RESUME] Reconciliation check errored:', err.message);
+    }
+
     const activeTokens = store.legs.map((l) => l.token);
     activeTokens.push('99926000'); // include spot
     try {
@@ -132,11 +149,15 @@ async function initializeApp() {
         `[CRON] Running expiry-day exit wind-down at ${env.TRADE_CLOSE_HOUR}:${env.TRADE_CLOSE_MINUTE} IST...`
       );
       try {
-        // Wind-down closes ALL legs (shorts + longs) on the T0-expiry Tuesday.
-        // Passing expiryOnly=true would skip the T1 longs (they don't expire
-        // that day), leaving them open an extra week and blocking the next
-        // Wednesday entry. Confirmed intent: exit the whole position here.
-        await executeExit('EXPIRY_WIND_DOWN');
+        const { ok, mismatches } = await reconcileStoreWithBroker();
+        if (!ok) {
+          console.error('[WIND_DOWN] Reconciliation failed — SKIPPING wind-down exit.');
+          await sendAlert(
+            `⏸️ *WIND-DOWN SKIPPED* — store does not match broker (${mismatches.length} mismatch(es)). Verify position manually before exiting.`
+          );
+        } else {
+          await executeExit('EXPIRY_WIND_DOWN');
+        }
       } catch (err: any) {
         await sendAlert(`🚨 Expiry-day wind-down failed: ${err.message}`);
       }

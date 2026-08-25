@@ -72,7 +72,8 @@ To clarify the strategy's operation, consider this concrete example:
    - On Tuesday (`15:15 IST`), the bot automatically wind-downs and exits open position legs.
 3. **Worthless Option Filter (Premium > ₹5)**:
    - Only options with premium $> ₹5$ (`WORTHLESS_LTP_THRESHOLD`) are squared off on exit. Options with premium $\le ₹5$ are marked `EXPIRED_UNBOOKED` and allowed to expire unbooked to avoid unnecessary slippage.
-4. **Safety Switches**:
+4. **Safety Switches & Reconciliation Guard**:
+   - **Position Reconciliation Guard**: On bot startup/resume or before the Tuesday expiry wind-down exit, compares open legs in `data/position-nifty.json` against actual broker positions (`getPosition()`). If a mismatch is detected, alerts Telegram loud and skips automatic wind-down exit.
    - `.kill` file presence: Soft pauses entry without closing existing positions.
    - `.panic` file presence: Triggers immediate market exit for all open legs and stops execution.
 
