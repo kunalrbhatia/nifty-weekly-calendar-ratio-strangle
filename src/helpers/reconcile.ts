@@ -3,7 +3,11 @@ import { isPaperMode } from './modeManager.js';
 import { getSmartApi, retryCall } from './api.js';
 import { sendAlert } from '../notifier.js';
 
-const NIFTY_LOT_SIZE = 65; // NIFTY weekly lot size constant; the store does NOT persist lot size
+// NOTE (2026-08-27 fix): Angel One getPosition() netqty is in SHARES, and the store's
+// leg.qty is ALSO in SHARES (entry.ts places qty: lotSize = 65 shares for 1 lot).
+// Earlier code multiplied store qty by 65 again (treating it as lots), which produced
+// false mismatches (e.g. 4225 vs 65) on every resume. Removed the conversion — direct
+// share-to-share comparison. Verified live: store long 65 == broker netqty 65 ✓
 
 /**
  * Compares the algo's local position store (data/position-nifty.json) against
@@ -63,8 +67,9 @@ export async function reconcileStoreWithBroker(): Promise<{
     // Compare each OPEN leg against broker position
     for (const leg of openLegs) {
       const symbol = leg.symbol;
-      const expectedShares =
-        leg.side === 'BUY' ? leg.qty * NIFTY_LOT_SIZE : -leg.qty * NIFTY_LOT_SIZE;
+      // Store qty is in SHARES (entry.ts places qty: lotSize = 65 shares for 1 lot).
+      // Broker getPosition netqty is ALSO in SHARES. Direct comparison — no ×65.
+      const expectedShares = leg.side === 'BUY' ? leg.qty : -leg.qty;
       const brokerQty = brokerNet[symbol] !== undefined ? brokerNet[symbol] : 0;
 
       if (brokerQty === 0) {
