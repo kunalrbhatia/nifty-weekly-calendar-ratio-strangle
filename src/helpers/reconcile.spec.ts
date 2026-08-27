@@ -76,8 +76,8 @@ describe('reconcileStoreWithBroker', () => {
     });
 
     const mockPositionData = [
-      { tradingsymbol: 'NIFTY01SEP2624600CE', netqty: '4225' }, // 65 * 65 = 4225
-      { tradingsymbol: 'NIFTY25AUG2624600CE', netqty: '-8450' }, // -130 * 65 = -8450
+      { tradingsymbol: 'NIFTY01SEP2624600CE', netqty: '65' }, // 65 shares = 1 lot, matches store
+      { tradingsymbol: 'NIFTY25AUG2624600CE', netqty: '-130' }, // -130 shares = 2 lots, matches store
     ];
 
     const mockApi = { getPosition: jest.fn() };
@@ -133,7 +133,7 @@ describe('reconcileStoreWithBroker', () => {
     });
 
     const mockPositionData = [
-      { tradingsymbol: 'NIFTY01SEP2624600CE', netqty: '-4225' }, // store expected +4225
+      { tradingsymbol: 'NIFTY01SEP2624600CE', netqty: '-65' }, // store expected +65 (opposite side)
     ];
 
     const mockApi = { getPosition: jest.fn() };
@@ -164,7 +164,7 @@ describe('reconcileStoreWithBroker', () => {
     });
 
     const mockPositionData = [
-      { tradingsymbol: 'NIFTY25AUG2624600CE', netqty: '-4230' }, // expected -8450
+      { tradingsymbol: 'NIFTY25AUG2624600CE', netqty: '-135' }, // expected -130 (5-share drift)
     ];
 
     const mockApi = { getPosition: jest.fn() };
@@ -226,8 +226,8 @@ describe('reconcileStoreWithBroker', () => {
 
     // Case A: Clean
     const mockPositionDataClean = [
-      { tradingsymbol: 'NIFTY01SEP2624600CE', netqty: '4225' },
-      { tradingsymbol: 'NIFTY25AUG2624600CE', netqty: '-8450' },
+      { tradingsymbol: 'NIFTY01SEP2624600CE', netqty: '65' },
+      { tradingsymbol: 'NIFTY25AUG2624600CE', netqty: '-130' },
     ];
     const mockApi = { getPosition: jest.fn() };
     mockGetSmartApi.mockResolvedValue(mockApi);
