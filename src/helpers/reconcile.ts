@@ -47,8 +47,15 @@ export async function reconcileStoreWithBroker(): Promise<{
     const api = await getSmartApi();
     const task = async () => {
       const res = await api.getPosition();
+      // Validate the response SHAPE, not just the message: a failed call can still
+      // carry message='SUCCESS', which previously produced the useless alert text
+      // "Could not fetch broker positions: SUCCESS". Report the real shape instead.
       if (!res || res.status !== true || !Array.isArray(res.data)) {
-        throw new Error(res?.message || 'getPosition returned invalid or failed response');
+        throw new Error(
+          `unexpected getPosition response (status=${JSON.stringify(res?.status)}, ` +
+            `dataType=${Array.isArray(res?.data) ? 'array' : typeof res?.data}, ` +
+            `message=${JSON.stringify(res?.message)})`
+        );
       }
       return res.data;
     };
@@ -74,11 +81,11 @@ export async function reconcileStoreWithBroker(): Promise<{
 
       if (brokerQty === 0) {
         mismatches.push(
-          `${symbol}: store says ${leg.side} ${leg.qty} lots OPEN but broker has ZERO position`
+          `${symbol}: store says ${leg.side} ${leg.qty} shares OPEN but broker has ZERO position`
         );
       } else if (Math.sign(brokerQty) !== Math.sign(expectedShares)) {
         mismatches.push(
-          `${symbol}: store says ${leg.side} ${leg.qty} lots but broker shows net ${brokerQty} shares (OPPOSITE side!)`
+          `${symbol}: store says ${leg.side} ${leg.qty} shares but broker shows net ${brokerQty} shares (OPPOSITE side!)`
         );
       } else if (Math.abs(brokerQty) !== Math.abs(expectedShares)) {
         mismatches.push(
